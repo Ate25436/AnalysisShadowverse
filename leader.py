@@ -1,4 +1,4 @@
-from card import ClassName, CardType, Card
+from card import ClassName, CardType, Card, AttackAuthority
 from enum import Enum
 from gamemaster import GameMaster
 
@@ -56,9 +56,59 @@ class Me(Leader):
         self.Hand.pop(PlayIndex)
         GameMaster.field[LeaderEnum.Me].append(PlayCard)
         if "fanfare" in PlayCard.ability:
-            PlayCard.ability["fanfare"](self, GameMaster)
+            PlayCard.ability["fanfare"](GameMaster)
         
+    def Attack(self, AttackingName, AttackedName, GameMaster):
+        existence = False
+        for i in range(len(GameMaster.field[LeaderEnum.Me])):
+            if GameMaster.field[LeaderEnum.Me][i].CardName == AttackingName:
+                AttackingCard = GameMaster.field[LeaderEnum.Me][i]
+                AttackingIndex = i
+                existence = True
+                break
+        if not existence:
+            print("Selected object is not exist in your field")
+            exit()
+        
+        existence = False
+        for i in range(len(GameMaster.field[LeaderEnum.Opponent])):
+            if GameMaster.field[LeaderEnum.Opponent][i].CardName == AttackedName:
+                AttackedCard = GameMaster.field[LeaderEnum.Me][i]
+                AttackedIndex = i
+                existence = True
+                break
+        if AttackedName == "leader":
+            existence = True
 
+        if not existence:
+            print("Selected object is not exist in your opponent field")
+            exit()
+
+        if AttackedName == "leader" and (AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower):
+            print(f"{AttackingCard.CardName} does not have sufficient authority")
+            exit()
+        elif AttackedName != "leader" and (AttackingCard.AttackAuthority == AttackAuthority.CantAttack):
+            print(f"{AttackingCard.CardName} does not have sufficient authority")
+            exit()
+
+        if AttackedName == "leader":
+            if "Attack" in AttackingCard.ability:
+                AttackingCard.ability["Attack"](GameMaster)
+        else:
+            if "Attack" in AttackingCard.ability:
+                AttackingCard.ability["Attack"](GameMaster)
+
+            if "engagement" in AttackingCard.ability:
+                AttackingCard.ability["engagement"](GameMaster)
+            
+            if "engagement" in AttackedCard.ability:
+                AttackedCard.ability["engagement"](GameMaster)
+        AttackingCard.health -= AttackedCard.power
+        AttackedCard.health -= AttackingCard.power
+        if AttackingCard.health < 0:
+            AttackingCard.Destroyed()
+        if AttackedCard.health < 0:
+            AttackedCard.Destroyed()
 
 class Opponent(Leader):
     def __init__(self, LeaderType: ClassName, advance) -> None:
