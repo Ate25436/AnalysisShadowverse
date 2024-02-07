@@ -1,14 +1,13 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 from card import ClassName, CardType, Card, AttackAuthority
-from enum import Enum
+from enumurations import *
 from gamemaster import GameMaster
 
 def handler(func, *args):
     return func(*args)
 
 
-class LeaderEnum(Enum):
-    Me       = 0
-    Opponent = 1
 
 class Leader():
 
@@ -26,7 +25,7 @@ class Leader():
             self.EP = 2
         else:
             self.EP = 3
-    
+        self.Information = [self.LeaderType, self.MaxHealth, self.Health, self.MaxPP, self.PP, self.cemetery, self.DeckNum, self.HandNum, self.advance, self.EP]
 
 
     
@@ -47,7 +46,7 @@ class Me(Leader):
         if not existence:
             print(f"{CardName} is not in Hand")
             exit()
-        if PlayCard.Cost > self.PP:
+        if PlayCard.cost > self.PP:
             print("There is not sufficient PP")
             exit()
         if len(GameMaster.field[LeaderEnum.Me]) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
@@ -56,7 +55,7 @@ class Me(Leader):
         self.Hand.pop(PlayIndex)
         GameMaster.field[LeaderEnum.Me].append(PlayCard)
         if "fanfare" in PlayCard.ability:
-            PlayCard.ability["fanfare"](GameMaster)
+            PlayCard.ability["fanfare"](GameMaster, LeaderEnum.Me)
         
     def Attack(self, AttackingName, AttackedName, GameMaster):
         existence = False
@@ -109,6 +108,14 @@ class Me(Leader):
             AttackingCard.Destroyed()
         if AttackedCard.health < 0:
             AttackedCard.Destroyed()
+
+
+    def DrawCard(self, Card:Card):
+        self.Hand.append(Card)
+        self.HandNum += 1
+    
+    def Print(self):
+        print(*self.Information)
 
 class Opponent(Leader):
     def __init__(self, LeaderType: ClassName, advance) -> None:
