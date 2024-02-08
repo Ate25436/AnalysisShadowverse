@@ -53,69 +53,81 @@ class Me(Leader):
             print("There is not sufficient space")
             exit()
         self.Hand.pop(PlayIndex)
+        self.HandNum -= 1
         GameMaster.field[LeaderEnum.Me].append(PlayCard)
+        self.PP -= PlayCard.cost
+        GameMaster.RearrangeLocation()
         if "fanfare" in PlayCard.ability:
             PlayCard.ability["fanfare"](GameMaster, LeaderEnum.Me)
         
-    def Attack(self, AttackingName, AttackedName, GameMaster):
-        existence = False
-        for i in range(len(GameMaster.field[LeaderEnum.Me])):
-            if GameMaster.field[LeaderEnum.Me][i].CardName == AttackingName:
-                AttackingCard = GameMaster.field[LeaderEnum.Me][i]
-                AttackingIndex = i
-                existence = True
-                break
-        if not existence:
-            print("Selected object is not exist in your field")
+    def Attack(self, AttackingIndex, AttackedIndex, GameMaster, Opponent):
+        AttackedObject = "Follower"
+        if AttackedIndex == 6:
+            AttackedObject = "Leader"
+        if AttackingIndex < 0 or AttackingIndex >= len(GameMaster.field[LeaderEnum.Me]):
+            print("There is not card at that place")
             exit()
-        
-        existence = False
-        for i in range(len(GameMaster.field[LeaderEnum.Opponent])):
-            if GameMaster.field[LeaderEnum.Opponent][i].CardName == AttackedName:
-                AttackedCard = GameMaster.field[LeaderEnum.Me][i]
-                AttackedIndex = i
-                existence = True
-                break
-        if AttackedName == "leader":
-            existence = True
-
-        if not existence:
-            print("Selected object is not exist in your opponent field")
+        AttackingCard = GameMaster.field[LeaderEnum.Me][AttackingIndex]
+        if AttackingCard.CardType == CardType.Amulet or "unattackable" in AttackingCard.ability:
+            print("That card is not able to attack")
             exit()
-
-        if AttackedName == "leader" and (AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower):
-            print(f"{AttackingCard.CardName} does not have sufficient authority")
-            exit()
-        elif AttackedName != "leader" and (AttackingCard.AttackAuthority == AttackAuthority.CantAttack):
-            print(f"{AttackingCard.CardName} does not have sufficient authority")
-            exit()
-
-        if AttackedName == "leader":
-            if "Attack" in AttackingCard.ability:
-                AttackingCard.ability["Attack"](GameMaster)
-        else:
-            if "Attack" in AttackingCard.ability:
-                AttackingCard.ability["Attack"](GameMaster)
-
+        if AttackedObject == "Follower":
+            if AttackingCard.AttackAuthority == AttackAuthority.CantAttack:
+                print("There is not sufficient authority")
+                exit()
+            if AttackedIndex < 0 or AttackedIndex >= len(GameMaster.field[LeaderEnum.Opponent]):
+                print("There is not card at that place")
+                exit()
+            AttackedCard = GameMaster.field[LeaderEnum.Opponent][AttackedIndex]
+            if "untouchable" in AttackedCard.ability:
+                print("That card is untouchable")
+                exit()
+            if "attack" in AttackingCard.ability:
+                AttackingCard.ability["attack"](GameMaster, LeaderEnum.Me)
             if "engagement" in AttackingCard.ability:
-                AttackingCard.ability["engagement"](GameMaster)
+                AttackingCard.ability["engagement"](GameMaster, LeaderEnum.Me)
             
             if "engagement" in AttackedCard.ability:
-                AttackedCard.ability["engagement"](GameMaster)
-        AttackingCard.health -= AttackedCard.power
-        AttackedCard.health -= AttackingCard.power
-        if AttackingCard.health < 0:
-            AttackingCard.Destroyed()
-        if AttackedCard.health < 0:
-            AttackedCard.Destroyed()
+                AttackedCard.ability["engagement"](GameMaster, LeaderEnum.Opponent)
 
+            if AttackingCard.health < 0:
+                AttackingCard.Destroyed(GameMaster, LeaderEnum.Me)
+            if AttackedCard.health < 0:
+                AttackedCard.Destroyed(GameMaster, LeaderEnum.Opponent)
+            
+            AttackingCard.health -= AttackedCard.power
+            AttackedCard.health -= AttackingCard.power
+            if AttackingCard.health < 0:
+                AttackingCard.Destroyed(GameMaster, LeaderEnum.Me)
+            if AttackedCard.health < 0:
+                AttackedCard.Destroyed(GameMaster, LeaderEnum.Opponent)
+
+        if AttackedObject == "Leader":
+            if AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower:
+                print("There is not sufficient authority")
+                exit()
+            if AttackedIndex < 0 or AttackedIndex >= len(GameMaster.field[LeaderEnum.Opponent]):
+                print("There is not card at that place")
+                exit()
+            if "attack" in AttackingCard.ability:
+                AttackingCard.ability["attack"](GameMaster, LeaderEnum.Me)
+
+            Opponent.health -= AttackingCard.power
+            
+            
+
+        
 
     def DrawCard(self, Card:Card):
         self.Hand.append(Card)
         self.HandNum += 1
+        self.DeckNum -= 1
     
     def Print(self):
-        print(*self.Information)
+        print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, DeckNum: {self.DeckNum}, HandNum: {self.HandNum}, advance: {self.advance}, EP: {self.EP}")
+        for i in range(len(self.Hand)):
+            print(self.Hand[i], end=" ")
+        print()
 
 class Opponent(Leader):
     def __init__(self, LeaderType: ClassName, advance) -> None:
@@ -124,5 +136,8 @@ class Opponent(Leader):
             GameMaster.WhosTurn = LeaderEnum.Opponent
         self.ConfirmedHand = []
         
+    
+    def Print(self):
+        print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, DeckNum: {self.DeckNum}, HandNum: {self.HandNum}, advance: {self.advance}, EP: {self.EP}")
 
 
