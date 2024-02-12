@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from enumurations import *
-from enumurations import CardType, ClassName, Rarity
-
+from gamemaster import GameMaster
 
 class Card():
     
@@ -22,11 +21,14 @@ class Card():
     def __str__(self) -> str:
         return f"{self.CardName}"
 
-    def Destroyed(self, GameMaster, Leader:LeaderEnum):
-        GameMaster.field[Leader].pop(self.FieldLocation)
-        if "lastword" in self.ability:
-            GameMaster.LastWordQueue.append(self.ability["lastword"])
-        GameMaster.RearrangeLocation()
+    def Destroyed(self, Leader):
+        Leader.field.pop(self.FieldLocation)
+        self.FieldLocation = -1
+        if "LastWord" in self.ability:
+            GameMaster.LastWordQueue(self.ability["LastWord"])
+        Leader.cemetery += 1
+        Leader.Relocation()
+    
 
     
 class Knight(Card):
@@ -34,19 +36,19 @@ class Knight(Card):
         super().__init__(ClassName.Neutral, Rarity.Bronze, 1, "Knight", CardType.Follower, 1, 1)
 
 class Test1(Card):
-    def Test1Fanfare(self, GameMaster, Leader:LeaderEnum):
+    def Test1Fanfare(self, Leader):
         knight = Knight()
-        GameMaster.field[Leader].append(knight)
-        GameMaster.RearrangeLocation()
+        Leader.field.append(knight)
+        Leader.Relocation()
     
     def __init__(self) -> None:
         super().__init__(ClassName.Neutral, Rarity.Bronze, 2, "test1", CardType.Follower, 2, 2, ability={"fanfare":self.Test1Fanfare})
     
 class Test2(Card):
-    def Test2Fanfare(self, GameMaster, Leader:LeaderEnum):
+    def Test2Fanfare(self,Leader):
         test1 = Test1()
-        GameMaster.field[Leader].append(test1)
-        GameMaster.RearrangeLocation()
+        Leader.field.append(test1)
+        Leader.RearrangeLocation()
     
     def __init__(self) -> None:
         super().__init__(ClassName.Neutral, Rarity.Bronze, 3, "test2", CardType.Follower, 3, 3, ability={"fanfare":self.Test2Fanfare})

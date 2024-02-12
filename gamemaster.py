@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 from enumurations import *
 
+def handler(func, *args):
+    return func(*args)
+
 class GameMaster():
-    field = [[], []]
     WhosTurn = LeaderEnum.Me
     LastWordQueue = []
-
+    EndTurnQueue = []
+    EngagementQueue = []
     def Print(self):
         for i in range(2):
             for j in range(len(self.field[i])):
@@ -18,3 +21,6 @@ class GameMaster():
             for j in range(len(self.field[i])):
                 self.field[i][j].FieldLocation = j
     
+    def SolveEndTurn(self):
+        for ability in self.EndTurnQueue:
+            handler(ability[0], ability[1], ability[2])
