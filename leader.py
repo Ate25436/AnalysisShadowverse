@@ -3,6 +3,7 @@
 
 from enumurations import *
 from gamemaster import GameMaster
+from card import *
 
 import random
 
@@ -29,6 +30,7 @@ class Leader():
             self.EP = 3
         self.field = []
         self.Deck = Deck
+        self.Evolvable = False
 
     def Relocation(self):
         for i, card in enumerate(self.field):
@@ -110,8 +112,43 @@ class Leader():
             Opponent.health -= AttackingCard.power
 
     def DrawCard(self):
-        i = random.randrange(len(self.Deck))
-        self.Hand.append(self.Deck[i])
+        if len(self.Deck) > 0:
+            i = random.randrange(len(self.Deck))
+            self.Hand.append(self.Deck[i])
+        else:
+            print("You Defeated")
+
+    def TurnChange(self, GameMaster, Opponent):
+        for card in self.field:
+            if "EndTurn" in card.ability:
+                GameMaster.EndTurnQueue.append([card.ability["EndTurn"], card, self])
+        
+        for card in Opponent.field:
+            if "EndOpponentTurn" in card.ability:
+                GameMaster.EndTurnQueue.append([card.ability["EndOpponentTurn"], card, Opponent])
+
+        GameMaster.SolveEndTurn()
+        GameMaster.ChangeWhosTurn()
+
+        for card in Opponent.field:
+            if "StartTurn" in card.ability:
+                GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
+        
+        for card in self.field:
+            GameMaster.StartQueue.append([card.ability["StartOpponentTurn"], card, self])
+        
+        GameMaster.SolveStartTurn()
+
+        Opponent.Turn += 1
+        if (Opponent.advance == 0 and Opponent.Turn == 4) or (Opponent.advance == 1 and Opponent.Turn == 5):
+            self.Evolvable = True
+            
+        for card in Opponent.field:
+            if not "unattackable" in card.ability:
+                card.AttackAuthority = AttackAuthority.Attackable
+        
+        Opponent.DrawCard()
+
 
     def Print(self):
         print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, advance: {self.advance}, EP: {self.EP}")

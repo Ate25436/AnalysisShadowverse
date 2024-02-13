@@ -10,17 +10,25 @@ class GameMaster():
     LastWordQueue = []
     EndTurnQueue = []
     EngagementQueue = []
+    StartTurnQueue = []
     def Print(self):
         for i in range(2):
-            for j in range(len(self.field[i])):
-                print(self.field[0][j].CardName, end=" ")
+            for j in range(len(GameMaster.field[i])):
+                print(GameMaster.field[0][j].CardName, end=" ")
             print()
     
-    def RearrangeLocation(self):
-        for i in range(len(self.field)):
-            for j in range(len(self.field[i])):
-                self.field[i][j].FieldLocation = j
-    
     def SolveEndTurn(self):
-        for ability in self.EndTurnQueue:
+        for ability in GameMaster.EndTurnQueue:
             handler(ability[0], ability[1], ability[2])
+        
+    def ChangeWhosTurn(self):
+        if GameMaster.WhosTurn == LeaderEnum.Me:
+            GameMaster.WhosTurn = LeaderEnum.Opponent
+        
+        else:
+            GameMaster.WhosTurn = LeaderEnum.Me
+
+    def SolveStartTurn(self):
+        for ability in GameMaster.StartTurnQueue:
+            handler(ability[0], ability[1], ability[2])
+
