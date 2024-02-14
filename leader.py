@@ -21,7 +21,6 @@ class Leader():
         self.MaxPP = 0
         self.PP = 0
         self.cemetery = 0
-        self.HandNum = 0
         self.Hand = []
         self.advance = advance
         if self.advance == 1:
@@ -31,6 +30,7 @@ class Leader():
         self.field = []
         self.Deck = Deck
         self.Evolvable = False
+        self.Turn = 1
 
     def Relocation(self):
         for i, card in enumerate(self.field):
@@ -49,12 +49,12 @@ class Leader():
         if len(self.field) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
             print("There is not sufficient space")
             exit()
-        self.Hand.pop(CardIndex)
+        PlayCard = self.Hand.pop(CardIndex)
         self.field.append(PlayCard)
         self.PP -= PlayCard.cost
         self.Relocation()
         if "fanfare" in PlayCard.ability:
-            handler(PlayCard.ability["fanfare"], PlayCard, self)
+            handler(PlayCard.ability["fanfare"], self)
 
     def Attack(self, AttackingIndex, AttackedIndex, GameMaster, Opponent):
         AttackedObject = "Follower"
@@ -78,6 +78,7 @@ class Leader():
             if "untouchable" in AttackedCard.ability:
                 print("That card is untouchable")
                 exit()
+            
             if "attack" in AttackingCard.ability:
                 GameMaster.EngagementQueue.append([AttackingCard.ability["attack"], AttackingCard, self])
             if "engagement" in AttackingCard.ability:
@@ -85,20 +86,18 @@ class Leader():
 
             if "engagement" in AttackedCard.ability:
                 GameMaster.EngagementQueue.append([AttackedCard.ability["engagement"], AttackedCard, Opponent])
-
-            GameMaster.SolveEndTurn()
             
-            if AttackingCard.health < 0:
+            if AttackingCard.health <= 0:
                 AttackingCard.Destroyed(self)
-            if AttackedCard.health < 0:
+            if AttackedCard.health <= 0:
                 AttackedCard.Destroyed(Opponent)
             
-            if AttackingCard.FieldLocation == -1 or AttackedCard.FieldLocation == -1:
+            if not(AttackingCard.FieldLocation == -1 or AttackedCard.FieldLocation == -1):
                 AttackingCard.health -= AttackedCard.power
                 AttackedCard.health -= AttackingCard.power
-                if AttackingCard.health < 0:
+                if AttackingCard.health <= 0:
                     AttackingCard.Destroyed(self)
-                if AttackedCard.health < 0:
+                if AttackedCard.health <= 0:
                     AttackedCard.Destroyed(Opponent)
 
         if AttackedObject == "Leader":
@@ -114,9 +113,15 @@ class Leader():
     def DrawCard(self):
         if len(self.Deck) > 0:
             i = random.randrange(len(self.Deck))
-            self.Hand.append(self.Deck[i])
+            self.Hand.append(self.Deck.pop(i))
         else:
             print("You Defeated")
+
+    def DrawSpecificCard(self, CardName):
+        for i, card in enumerate(self.Deck):
+            if card.CardName == CardName:
+                self.Hand.append(self.Deck.pop(i))
+            
 
     def TurnChange(self, GameMaster, Opponent):
         for card in self.field:
@@ -135,7 +140,8 @@ class Leader():
                 GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
         
         for card in self.field:
-            GameMaster.StartQueue.append([card.ability["StartOpponentTurn"], card, self])
+            if "StartOpponentTurn" in card.ability:
+                GameMaster.StartTurnQueue.append([card.ability["StartOpponentTurn"], card, self])
         
         GameMaster.SolveStartTurn()
 
@@ -152,9 +158,8 @@ class Leader():
 
     def Print(self):
         print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, advance: {self.advance}, EP: {self.EP}")
-        for i in range(len(self.Hand)):
-            print(self.Hand[i], end=" ")
-        print()
+        print(*self.Hand)
+        print(*self.field)
 
 
         

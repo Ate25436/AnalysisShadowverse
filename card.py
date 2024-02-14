@@ -22,6 +22,7 @@ class Card():
         return f"{self.CardName}"
 
     def Destroyed(self, Leader):
+        print(self.FieldLocation)
         Leader.field.pop(self.FieldLocation)
         self.FieldLocation = -1
         if "LastWord" in self.ability:
@@ -48,7 +49,7 @@ class Test2(Card):
     def Test2Fanfare(self,Leader):
         test1 = Test1()
         Leader.field.append(test1)
-        Leader.RearrangeLocation()
+        Leader.Relocation()
     
     def __init__(self) -> None:
         super().__init__(ClassName.Neutral, Rarity.Bronze, 3, "test2", CardType.Follower, 3, 3, ability={"fanfare":self.Test2Fanfare})
