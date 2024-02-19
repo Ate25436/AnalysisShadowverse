@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from enumurations import *
+from enumerations import *
+from collections import deque
 
 def handler(func, *args):
     return func(*args)
@@ -11,14 +12,10 @@ class GameMaster():
     EndTurnQueue = []
     EngagementQueue = []
     StartTurnQueue = []
-    def Print(self):
-        for i in range(2):
-            for j in range(len(GameMaster.field[i])):
-                print(GameMaster.field[0][j].CardName, end=" ")
-            print()
     
     def SolveEndTurn(self):
-        for ability in GameMaster.EndTurnQueue:
+        while GameMaster.EndTurnQueue != []:
+            ability = GameMaster.EndTurnQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
         
     def ChangeWhosTurn(self):
@@ -29,6 +26,28 @@ class GameMaster():
             GameMaster.WhosTurn = LeaderEnum.Me
 
     def SolveStartTurn(self):
-        for ability in GameMaster.StartTurnQueue:
+        while GameMaster.StartTurnQueue != []:
+            ability = GameMaster.StartTurnQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
+    
+    def SolveEngagement(self):
+        while GameMaster.EngagementQueue != []:
+            ability = GameMaster.EngagementQueue.pop(0)
+            handler(ability[0], ability[1], ability[2])
+    
+    def SolveLastWord(self):
+        while GameMaster.LastWordQueue != []:
+            ability = GameMaster.LastWordQueue.pop(0)
+            handler(ability[0], ability[1], ability[2])
+
+    def Print(self):
+        print(f"WhosTurn: {self.WhosTurn}")
+        print("LastWord: ", end="")
+        print(*self.LastWordQueue)
+        print("EndTurn: ", end="")
+        print(*self.EndTurnQueue)
+        print("Engagement: ", end="")
+        print(*self.EngagementQueue)
+        print("StartTurn: ", end="")
+        print(*self.StartTurnQueue)
 

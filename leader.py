@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from enumurations import *
+from enumerations import *
 from gamemaster import GameMaster
 from card import *
 
@@ -14,7 +14,7 @@ def handler(func, *args):
 
 class Leader():
 
-    def __init__(self, LeaderType:ClassName, advance, Deck) -> None:
+    def __init__(self, LeaderType:ClassName, advance, Deck, GameMaster) -> None:
         self.LeaderType = LeaderType
         self.MaxHealth = 20
         self.Health = 20
@@ -31,13 +31,14 @@ class Leader():
         self.Deck = Deck
         self.Evolvable = False
         self.Turn = 1
+        self.GameMaster = GameMaster
 
     def Relocation(self):
         for i, card in enumerate(self.field):
             card.FieldLocation = i
 
 
-    def Play(self, CardIndex):
+    def Play(self, CardIndex, Opponent):
         if CardIndex < 0 or CardIndex >= len(self.Hand):
             print("There is not card at that place")
             exit()
@@ -54,9 +55,10 @@ class Leader():
         self.PP -= PlayCard.cost
         self.Relocation()
         if "fanfare" in PlayCard.ability:
-            handler(PlayCard.ability["fanfare"], self)
+            handler(PlayCard.ability["fanfare"], self, Opponent)
+        self.GameMaster.SolveLastWord()
 
-    def Attack(self, AttackingIndex, AttackedIndex, GameMaster, Opponent):
+    def Attack(self, AttackingIndex, AttackedIndex, Opponent):
         AttackedObject = "Follower"
         if AttackedIndex == 6:
             AttackedObject = "Leader"
@@ -79,26 +81,28 @@ class Leader():
                 print("That card is untouchable")
                 exit()
             
+            print(AttackingCard)
             if "attack" in AttackingCard.ability:
-                GameMaster.EngagementQueue.append([AttackingCard.ability["attack"], AttackingCard, self])
+                self.GameMaster.EngagementQueue.append([AttackingCard.ability["attack"], self, Opponent])
             if "engagement" in AttackingCard.ability:
-                GameMaster.EngagementQueue.append([AttackingCard.ability["engagement"], AttackingCard, self])
+                self.GameMaster.EngagementQueue.append([AttackingCard.ability["engagement"], self, Opponent])
 
             if "engagement" in AttackedCard.ability:
-                GameMaster.EngagementQueue.append([AttackedCard.ability["engagement"], AttackedCard, Opponent])
-            
+                self.GameMaster.EngagementQueue.append([AttackedCard.ability["engagement"], Opponent, self])
+            self.GameMaster.SolveEngagement()
+
             if AttackingCard.health <= 0:
-                AttackingCard.Destroyed(self)
+                AttackingCard.Destroyed(self, Opponent)
             if AttackedCard.health <= 0:
-                AttackedCard.Destroyed(Opponent)
+                AttackedCard.Destroyed(Opponent, self)
             
             if not(AttackingCard.FieldLocation == -1 or AttackedCard.FieldLocation == -1):
                 AttackingCard.health -= AttackedCard.power
                 AttackedCard.health -= AttackingCard.power
                 if AttackingCard.health <= 0:
-                    AttackingCard.Destroyed(self)
+                    AttackingCard.Destroyed(self, Opponent)
                 if AttackedCard.health <= 0:
-                    AttackedCard.Destroyed(Opponent)
+                    AttackedCard.Destroyed(Opponent, self)
 
         if AttackedObject == "Leader":
             if AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower:
@@ -106,9 +110,10 @@ class Leader():
                 exit()
 
             if "attack" in AttackingCard.ability:
-                handler(AttackingCard.ability["attack"], AttackingCard, self)
+                handler(AttackingCard.ability["attack"], AttackingCard, self, Opponent)
 
             Opponent.health -= AttackingCard.power
+        self.GameMaster.SolveLastWord()
 
     def DrawCard(self):
         if len(self.Deck) > 0:
@@ -121,29 +126,31 @@ class Leader():
         for i, card in enumerate(self.Deck):
             if card.CardName == CardName:
                 self.Hand.append(self.Deck.pop(i))
+                return None
+        print("There is not such a card in Deck")
             
 
-    def TurnChange(self, GameMaster, Opponent):
+    def TurnChange(self, Opponent):
         for card in self.field:
             if "EndTurn" in card.ability:
-                GameMaster.EndTurnQueue.append([card.ability["EndTurn"], card, self])
+                self.GameMaster.EndTurnQueue.append([card.ability["EndTurn"], self, Opponent])
         
         for card in Opponent.field:
             if "EndOpponentTurn" in card.ability:
-                GameMaster.EndTurnQueue.append([card.ability["EndOpponentTurn"], card, Opponent])
+                self.GameMaster.EndTurnQueue.append([card.ability["EndOpponentTurn"], Opponent, self])
 
-        GameMaster.SolveEndTurn()
-        GameMaster.ChangeWhosTurn()
+        self.GameMaster.SolveEndTurn()
+        self.GameMaster.ChangeWhosTurn()
 
         for card in Opponent.field:
             if "StartTurn" in card.ability:
-                GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
+                self.GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
         
         for card in self.field:
             if "StartOpponentTurn" in card.ability:
-                GameMaster.StartTurnQueue.append([card.ability["StartOpponentTurn"], card, self])
+                self.GameMaster.StartTurnQueue.append([card.ability["StartOpponentTurn"], card, self])
         
-        GameMaster.SolveStartTurn()
+        self.GameMaster.SolveStartTurn()
 
         Opponent.Turn += 1
         if (Opponent.advance == 0 and Opponent.Turn == 4) or (Opponent.advance == 1 and Opponent.Turn == 5):
