@@ -13,41 +13,47 @@ class GameMaster():
     EngagementQueue = []
     StartTurnQueue = []
     
-    def SolveEndTurn(self):
+    @classmethod
+    def SolveEndTurn(cls):
         while GameMaster.EndTurnQueue != []:
             ability = GameMaster.EndTurnQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
-        
-    def ChangeWhosTurn(self):
+    
+    @classmethod
+    def ChangeWhosTurn(cls):
         if GameMaster.WhosTurn == LeaderEnum.Me:
             GameMaster.WhosTurn = LeaderEnum.Opponent
         
         else:
             GameMaster.WhosTurn = LeaderEnum.Me
 
-    def SolveStartTurn(self):
+    @classmethod
+    def SolveStartTurn(cls):
         while GameMaster.StartTurnQueue != []:
             ability = GameMaster.StartTurnQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
     
-    def SolveEngagement(self):
+    @classmethod
+    def SolveEngagement(cls):
         while GameMaster.EngagementQueue != []:
             ability = GameMaster.EngagementQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
     
-    def SolveLastWord(self):
+    @classmethod
+    def SolveLastWord(cls):
         while GameMaster.LastWordQueue != []:
             ability = GameMaster.LastWordQueue.pop(0)
             handler(ability[0], ability[1], ability[2])
 
-    def Print(self):
-        print(f"WhosTurn: {self.WhosTurn}")
+    @classmethod
+    def Print(cls):
+        print(f"WhosTurn: {GameMaster.WhosTurn}")
         print("LastWord: ", end="")
-        print(*self.LastWordQueue)
+        print(*GameMaster.LastWordQueue)
         print("EndTurn: ", end="")
-        print(*self.EndTurnQueue)
+        print(*GameMaster.EndTurnQueue)
         print("Engagement: ", end="")
-        print(*self.EngagementQueue)
+        print(*GameMaster.EngagementQueue)
         print("StartTurn: ", end="")
-        print(*self.StartTurnQueue)
+        print(*GameMaster.StartTurnQueue)
 

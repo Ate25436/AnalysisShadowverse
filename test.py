@@ -4,7 +4,9 @@ from card import *
 from leader import *
 from gamemaster import *
 
-test2 = Test2()
+
+
+test1 = Test1()
 test3 = Test3()
 knight1 = Knight()
 knight2 = Knight()
@@ -12,13 +14,13 @@ knight3 = Knight()
 knight4 = Knight()
 
 GameMaster = GameMaster()
-Player1 = Leader(ClassName.Nemesis, advance=1, Deck=[test3, knight1, knight3], GameMaster=GameMaster)
-Player2 = Leader(ClassName.Dragon, advance=0, Deck=[test2, knight2, knight4], GameMaster=GameMaster)
+Player1 = Leader(ClassName.Nemesis, advance=1, Deck=[test3, knight1, knight3])
+Player2 = Leader(ClassName.Dragon, advance=0, Deck=[test1, knight2, knight4])
 
 
 
 Player1.DrawSpecificCard("test3")
-Player2.DrawSpecificCard("test2")
+Player2.DrawSpecificCard("test1")
 
 Player1.MaxPP += 3
 Player1.PP += 3

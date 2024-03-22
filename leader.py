@@ -14,7 +14,7 @@ def handler(func, *args):
 
 class Leader():
 
-    def __init__(self, LeaderType:ClassName, advance, Deck, GameMaster) -> None:
+    def __init__(self, LeaderType:ClassName, advance, Deck) -> None:
         self.LeaderType = LeaderType
         self.MaxHealth = 20
         self.Health = 20
@@ -31,7 +31,6 @@ class Leader():
         self.Deck = Deck
         self.Evolvable = False
         self.Turn = 1
-        self.GameMaster = GameMaster
 
     def Relocation(self):
         for i, card in enumerate(self.field):
@@ -39,57 +38,68 @@ class Leader():
 
 
     def Play(self, CardIndex, Opponent):
+        #スペルをプレイするときは別途関数が必要だと思われる
         if CardIndex < 0 or CardIndex >= len(self.Hand):
             print("There is not card at that place")
-            exit()
+            return
         PlayCard = self.Hand[CardIndex]
         
         if PlayCard.cost > self.PP:
             print("There is not sufficient PP")
-            exit()
+            return
         if len(self.field) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
             print("There is not sufficient space")
-            exit()
+            return
         PlayCard = self.Hand.pop(CardIndex)
-        self.field.append(PlayCard)
+        if PlayCard.CardType == CardType.Amulet or PlayCard.CardType == CardType.Follower:
+            self.field.append(PlayCard)
+        else:
+            self.cemetery += 1
         self.PP -= PlayCard.cost
         self.Relocation()
         if "fanfare" in PlayCard.ability:
             handler(PlayCard.ability["fanfare"], self, Opponent)
-        self.GameMaster.SolveLastWord()
+        GameMaster.SolveLastWord()
 
     def Attack(self, AttackingIndex, AttackedIndex, Opponent):
         AttackedObject = "Follower"
+        ExistShield = False
         if AttackedIndex == 6:
             AttackedObject = "Leader"
         if AttackingIndex < 0 or AttackingIndex >= len(self.field):
             print("There is not card at that place")
-            exit()
+            return
         AttackingCard = self.field[AttackingIndex]
+        for card in Opponent.field:
+            if "shield" in card.ability:
+                ExistShield = True
+                   
         if AttackingCard.CardType == CardType.Amulet or "unattackable" in AttackingCard.ability:
             print("That card is not able to attack")
-            exit()
+            return
         if AttackedObject == "Follower":
             if AttackingCard.AttackAuthority == AttackAuthority.CantAttack:
                 print("There is not sufficient authority")
-                exit()
+                return
             if AttackedIndex < 0 or AttackedIndex >= len(Opponent.field):
                 print("There is not card at that place")
-                exit()
+                return
             AttackedCard = Opponent.field[AttackedIndex]
-            if "untouchable" in AttackedCard.ability:
+            if "untouchable" in AttackedCard.ability or AttackedCard.CardType == CardType.Amulet:
                 print("That card is untouchable")
-                exit()
-            
-            print(AttackingCard)
+                return
+            if ExistShield and not("shield" in AttackedCard.ability):
+                print("There is a Follower with shield")
+                return
+
             if "attack" in AttackingCard.ability:
-                self.GameMaster.EngagementQueue.append([AttackingCard.ability["attack"], self, Opponent])
+                GameMaster.EngagementQueue.append([AttackingCard.ability["attack"], self, Opponent])
             if "engagement" in AttackingCard.ability:
-                self.GameMaster.EngagementQueue.append([AttackingCard.ability["engagement"], self, Opponent])
+                GameMaster.EngagementQueue.append([AttackingCard.ability["engagement"], self, Opponent])
 
             if "engagement" in AttackedCard.ability:
-                self.GameMaster.EngagementQueue.append([AttackedCard.ability["engagement"], Opponent, self])
-            self.GameMaster.SolveEngagement()
+                GameMaster.EngagementQueue.append([AttackedCard.ability["engagement"], Opponent, self])
+            GameMaster.SolveEngagement()
 
             if AttackingCard.health <= 0:
                 AttackingCard.Destroyed(self, Opponent)
@@ -104,16 +114,24 @@ class Leader():
                 if AttackedCard.health <= 0:
                     AttackedCard.Destroyed(Opponent, self)
 
+                if "bane" in AttackingCard.ability:
+                    AttackedCard.Destroyed()
+                if "bane" in AttackedCard.ability:
+                    AttackingCard.Destroyed()
+
         if AttackedObject == "Leader":
             if AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower:
                 print("There is not sufficient authority")
-                exit()
-
+                return
+            if ExistShield :
+                print("There is a Follower with shield")
+                return
+            
             if "attack" in AttackingCard.ability:
                 handler(AttackingCard.ability["attack"], AttackingCard, self, Opponent)
 
             Opponent.health -= AttackingCard.power
-        self.GameMaster.SolveLastWord()
+        GameMaster.SolveLastWord()
 
     def DrawCard(self):
         if len(self.Deck) > 0:
@@ -133,24 +151,24 @@ class Leader():
     def TurnChange(self, Opponent):
         for card in self.field:
             if "EndTurn" in card.ability:
-                self.GameMaster.EndTurnQueue.append([card.ability["EndTurn"], self, Opponent])
+                GameMaster.EndTurnQueue.append([card.ability["EndTurn"], self, Opponent])
         
         for card in Opponent.field:
             if "EndOpponentTurn" in card.ability:
-                self.GameMaster.EndTurnQueue.append([card.ability["EndOpponentTurn"], Opponent, self])
+                GameMaster.EndTurnQueue.append([card.ability["EndOpponentTurn"], Opponent, self])
 
-        self.GameMaster.SolveEndTurn()
-        self.GameMaster.ChangeWhosTurn()
+        GameMaster.SolveEndTurn()
+        GameMaster.ChangeWhosTurn()
 
         for card in Opponent.field:
             if "StartTurn" in card.ability:
-                self.GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
+                GameMaster.StartQueue.append([card.ability["StartTurn"], card, Opponent])
         
         for card in self.field:
             if "StartOpponentTurn" in card.ability:
-                self.GameMaster.StartTurnQueue.append([card.ability["StartOpponentTurn"], card, self])
+                GameMaster.StartTurnQueue.append([card.ability["StartOpponentTurn"], card, self])
         
-        self.GameMaster.SolveStartTurn()
+        GameMaster.SolveStartTurn()
 
         Opponent.Turn += 1
         if (Opponent.advance == 0 and Opponent.Turn == 4) or (Opponent.advance == 1 and Opponent.Turn == 5):
@@ -167,16 +185,5 @@ class Leader():
         print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, advance: {self.advance}, EP: {self.EP}")
         print(*self.Hand)
         print(*self.field)
-
-
-        
-
-        
-
-    
-    
-    
-
-
 
 
