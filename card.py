@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 
 from enumerations import *
 from enumerations import CardType, ClassName, Rarity
@@ -16,71 +17,9 @@ def IndexError(Leader):
         return
     return SubjectIndex
 
-class abilities():
-    @classmethod
-    def RepeatNum(cls, func, Num):
-        def Repeat(Leader, Opponent):
-            for i in range(Num):
-                func(Leader, Opponent)
-        return Repeat
     
-    @classmethod
-    def FuncSequence(cls, *funcs):
-        def Sequence(Leader, Opponent):
-            for func in funcs:
-                func(Leader, Opponent)
-        return Sequence
-    '''条件を含む選択
-    @classmethod
-    def '''
 
-    @classmethod
-    def DrawCardNum(cls, Num):
-        def DrawCard(Leader, Opponent):
-            for i in range(Num):
-                Leader.DrawCard()
-        return DrawCard
     
-    @classmethod
-    def LeaderHealNum(cls, Num):
-        def LeaderHeal(Leader, Opponent):
-            Leader.Health = min(Leader.MaxHealth, Leader.Health + Num)
-        return LeaderHeal #Numに指定した分だけの回復を行う関数のポインタを返す
-    
-    @classmethod
-    def LeaderDamageNum(cls, Num):
-        def LeaderDamage(Leader, Opponent):
-            Opponent.Health -= Num
-        return LeaderDamage #Numに指定した分だけの回復を行う関数のポインタを返す
-    
-    @classmethod
-    def FollowerHealNum(cls, Num):
-        def FollowerHeal(Leader, Opponent):
-            SubjectIndex = IndexError(Leader)
-            Leader.field[SubjectIndex].health = min(Leader.field[SubjectIndex].MaxHealth, Leader.field[SubjectIndex].health + Num)
-        return FollowerHeal
-    
-    @classmethod
-    def FollowerDamageNum(cls, Num):
-        def FollowerDamage(Leader, Opponent):
-            SubjectIndex = IndexError(Opponent)
-            Opponent.field[SubjectIndex].health -= Num
-        return FollowerDamage
-    
-    @classmethod
-    def FollowerDestroy(cls, Leader, Opponent):
-        SubjectIndex = IndexError(Opponent)
-        Opponent.field[SubjectIndex].Destroyed()
-    
-    @classmethod
-    def SummonCardNum(cls, Card, Num):
-        def SummonCard(Leader, Opponent):
-            for i in range(Num):
-                if len(Leader.field) == 5:
-                    break
-                Leader.field.append(Card)
-                Leader.Relocation
-        return SummonCard
 
 class Card():
     
@@ -101,6 +40,7 @@ class Card():
             self.AttackAuthority = AttackAuthority.OnlyFollower
         if "sprint" in self.ability:
             self.AttackAuthority = AttackAuthority.Attackable
+        self.SelectedCard = []
     
     def __str__(self) -> str:
         if self.CardType == CardType.Amulet or self.CardType == CardType.Spell:
@@ -118,6 +58,106 @@ class Card():
         Leader.cemetery += 1
         Leader.Relocation()
     
+    def RepeatNum(self, func, Num):
+        def Repeat(Leader, Opponent):
+            for i in range(Num):
+                func(Leader, Opponent)
+        return Repeat
+    
+    def FuncSequence(self, *funcs):
+        def Sequence(Leader, Opponent):
+            for func in funcs:
+                func(Leader, Opponent)
+        return Sequence
+    
+
+    def DrawCardNum(self, Num):
+        def DrawCard(Leader, Opponent):
+            for i in range(Num):
+                Leader.DrawCard()
+        return DrawCard
+    
+    def LeaderHealNum(self, Num):
+        def LeaderHeal(Leader, Opponent):
+            Leader.Health = min(Leader.MaxHealth, Leader.Health + Num)
+        return LeaderHeal #Numに指定した分だけの回復を行う関数のポインタを返す
+    
+    def LeaderDamageNum(self, Num):
+        def LeaderDamage(Leader, Opponent):
+            Opponent.Health -= Num
+        return LeaderDamage #Numに指定した分だけの回復を行う関数のポインタを返す
+    
+    def FollowerHealNum(self, Num):
+        def FollowerHeal(Leader, Opponent):
+            SubjectIndex = IndexError(Leader)
+            Leader.field[SubjectIndex].health = min(Leader.field[SubjectIndex].MaxHealth, Leader.field[SubjectIndex].health + Num)
+        return FollowerHeal
+    
+    def FollowerDamageNum(self, Num):
+        def FollowerDamage(Leader, Opponent):
+            SubjectIndex = IndexError(Opponent)
+            Opponent.field[SubjectIndex].health -= Num
+        return FollowerDamage
+    
+    def FollowerDestroy(self, Leader, Opponent):
+        SubjectIndex = IndexError(Opponent)
+        Opponent.field[SubjectIndex].Destroyed()
+    
+    def SummonCardNum(self, Card, Num):
+        def SummonCard(Leader, Opponent):
+            for i in range(Num):
+                if len(Leader.field) == 5:
+                    break
+                Leader.field.append(Card)
+                Leader.Relocation
+        return SummonCard
+
+    def if_Follower(self, Card):
+        if Card.CardType == CardType.Follower:
+            return True
+        else:
+            return False
+    
+    def if_Neutral(self, Card):
+        if Card.ClassName == ClassName.Neutral:
+            return True
+        else:
+            return False
+    
+    def if_NeutralFollower(self, Card):
+        if Card.if_Follower(Card) and Card.if_ClassName(Card):
+            return True
+        else:
+            return False
+    
+    def if_exist_NeutralFollower(self, Leader, Opponent):
+        ans = False
+        for card in Leader.Hand:
+            if self.if_NeutralFollower(card):
+                ans = True
+        return ans
+
+    def SelectNeutralFollower(self, Leader, Opponent):
+        while True:
+            CardIndex = int(input())
+            SelectedCard = Leader.Hand[CardIndex]
+            if self.if_NeutralFollower(SelectedCard):
+                self.SelectedCard.append(CardIndex)
+                return
+            else:
+                print("That card is not Neutral-Follower")
+    
+    def BuffSelectedFollowerNum(self, BuffNum):
+        def BuffSelectedFollower(Leader, Opponent):
+            if len(self.SelectedCard) != 0:
+                Buffed = self.SelectedCard[0]
+                self.power += BuffNum[0]
+                self.MaxHealth += BuffNum[1]
+                self.health += BuffNum[1]
+            return
+        return BuffSelectedFollower
+
+
 
     
 
@@ -133,7 +173,7 @@ class Test1(Card):
         Leader.Relocation()
     
     def __init__(self) -> None:
-        super().__init__(ClassName.Neutral, Rarity.Bronze, 2, "test1", CardType.Follower, 2, 2, ability={"fanfare":abilities.SummonCardNum(Card(ClassName.Neutral, Rarity.Bronze, 1, "Knight", CardType.Follower, 1, 1), 1)})
+        super().__init__(ClassName.Neutral, Rarity.Bronze, 2, "test1", CardType.Follower, 2, 2, ability={"fanfare":self.SummonCardNum(Card(ClassName.Neutral, Rarity.Bronze, 1, "Knight", CardType.Follower, 1, 1), 1)})
     
 class Test2(Card):
     def Test2Fanfare(self, Leader, Opponent):

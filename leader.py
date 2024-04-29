@@ -43,14 +43,20 @@ class Leader():
             print("There is not card at that place")
             return
         PlayCard = self.Hand[CardIndex]
-        
+        if "Select_in_Fanfare" in PlayCard.ability:
+            if_exist = PlayCard.ability["Select_in_Fanfare"][0]
+            select = PlayCard.ability["Select_in_Fanfare"][1]
+
+            if if_exist(self, Opponent):
+                select(self, Opponent)
+
         if PlayCard.cost > self.PP:
             print("There is not sufficient PP")
             return
         if len(self.field) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
             print("There is not sufficient space")
             return
-        PlayCard = self.Hand.pop(CardIndex)
+        PlayCard = self.Hand[CardIndex]
         if PlayCard.CardType == CardType.Amulet or PlayCard.CardType == CardType.Follower:
             self.field.append(PlayCard)
         else:
