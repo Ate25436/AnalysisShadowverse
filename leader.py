@@ -42,14 +42,19 @@ class Leader():
         if CardIndex < 0 or CardIndex >= len(self.Hand):
             print("There is not card at that place")
             return
-        PlayCard = self.Hand[CardIndex]
-        if "Select_in_Fanfare" in PlayCard.ability:
-            if_exist = PlayCard.ability["Select_in_Fanfare"][0]
-            select = PlayCard.ability["Select_in_Fanfare"][1]
+        PlayCard :Card = self.Hand[CardIndex]
+        if "select_in_fanfare" in PlayCard.ability:
+            if_exist = PlayCard.ability["select_in_fanfare"][0]
+            select = PlayCard.ability["select_in_fanfare"][1]
 
             if if_exist(self, Opponent):
                 select(self, Opponent)
-
+            
+            elif PlayCard.CardType == CardType.Spell:
+                print("There is no target")
+                return
+        
+        self.Hand.pop(CardIndex)
         if PlayCard.cost > self.PP:
             print("There is not sufficient PP")
             return
