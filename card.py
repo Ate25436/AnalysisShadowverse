@@ -58,52 +58,60 @@ class Card():
         Leader.cemetery += 1
         Leader.Relocation()
     
-    def RepeatNum(self, func, Num):
+    @classmethod
+    def RepeatNum(cls, func, Num):
         def Repeat(Leader, Opponent):
             for i in range(Num):
                 func(Leader, Opponent)
         return Repeat
     
-    def FuncSequence(self, *funcs):
+    @classmethod
+    def FuncSequence(cls, *funcs):
         def Sequence(Leader, Opponent):
             for func in funcs:
                 func(Leader, Opponent)
         return Sequence
     
-
-    def DrawCardNum(self, Num):
+    @classmethod
+    def DrawCardNum(cls, Num):
         def DrawCard(Leader, Opponent):
             for i in range(Num):
                 Leader.DrawCard()
         return DrawCard
     
-    def LeaderHealNum(self, Num):
+    @classmethod
+    def LeaderHealNum(cls, Num):
         def LeaderHeal(Leader, Opponent):
             Leader.Health = min(Leader.MaxHealth, Leader.Health + Num)
         return LeaderHeal #Numに指定した分だけの回復を行う関数のポインタを返す
     
-    def LeaderDamageNum(self, Num):
+    @classmethod
+    def LeaderDamageNum(cls, Num):
         def LeaderDamage(Leader, Opponent):
             Opponent.Health -= Num
         return LeaderDamage #Numに指定した分だけの回復を行う関数のポインタを返す
     
-    def FollowerHealNum(self, Num):
+    @classmethod
+    def FollowerHealNum(cls, Num):
         def FollowerHeal(Leader, Opponent):
             SubjectIndex = IndexError(Leader)
             Leader.field[SubjectIndex].health = min(Leader.field[SubjectIndex].MaxHealth, Leader.field[SubjectIndex].health + Num)
         return FollowerHeal
     
-    def FollowerDamageNum(self, Num):
+    @classmethod
+    def FollowerDamageNum(cls, Num):
         def FollowerDamage(Leader, Opponent):
             SubjectIndex = IndexError(Opponent)
             Opponent.field[SubjectIndex].health -= Num
         return FollowerDamage
     
-    def FollowerDestroy(self, Leader, Opponent):
+    @classmethod
+    def FollowerDestroy(cls, Leader, Opponent):
         SubjectIndex = IndexError(Opponent)
         Opponent.field[SubjectIndex].Destroyed()
     
-    def SummonCardNum(self, Card, Num):
+    @classmethod
+    def SummonCardNum(cls, Card, Num):
         def SummonCard(Leader, Opponent):
             for i in range(Num):
                 if len(Leader.field) == 5:
@@ -112,48 +120,72 @@ class Card():
                 Leader.Relocation
         return SummonCard
 
-    def if_Follower(self, Card):
-        if Card.CardType == CardType.Follower:
-            return True
-        else:
-            return False
-    
-    def if_Neutral(self, Card):
-        if Card.ClassName == ClassName.Neutral:
-            return True
-        else:
-            return False
-    
-    def if_NeutralFollower(self, Card):
-        if Card.if_Follower(Card) and Card.if_ClassName(Card):
-            return True
-        else:
-            return False
-    
-    def if_exist_NeutralFollower(self, Leader, Opponent):
-        ans = False
-        for card in Leader.Hand:
-            if self.if_NeutralFollower(card):
-                ans = True
-        return ans
-
-    def SelectNeutralFollower(self, Leader, Opponent):
-        while True:
-            CardIndex = int(input())
-            SelectedCard = Leader.Hand[CardIndex]
-            if self.if_NeutralFollower(SelectedCard):
-                self.SelectedCard.append(CardIndex)
-                return
+    @classmethod
+    def if_CardType(cls, CardType: CardType):
+        def if_Type(Card: Card):
+            if Card.CardType == CardType:
+                return True
             else:
-                print("That card is not Neutral-Follower")
+                return False
+        return if_Type
     
+    @classmethod
+    def if_ClassName(cls, ClassName: ClassName):
+        def if_Class(Card: Card):
+            if Card.ClassName == ClassName:
+                return True
+            else:
+                return False
+        return if_Class
+    
+    
+    @classmethod
+    def if_AnyAnd(cls, *funcs):
+        def if_And(Card):
+            ans = True
+            for func in funcs:
+                if func(Card) == False:
+                    ans = False
+            return ans
+        return if_And
+    
+    @classmethod
+    def if_exist_match_card(cls, if_func):
+        def if_exist(Leader, Opponent):
+            ans = False
+            for card in Leader.field:
+                if if_func(card):
+                    ans = True
+            return ans
+        return if_exist
+    
+
+
+    def SelectCard(self, if_func):
+        def Select_if_match_card(cls, Leader, Opponent):
+            while True:
+                CardIndex = input()
+                if CardIndex == 'q':
+                    break
+                CardIndex = int(CardIndex)
+                SelectedCard = Leader.field[CardIndex]
+                if if_func(SelectedCard):
+                    self.SelectedCard.append(CardIndex)
+                    break
+                else:
+                    print("That card is not Neutral-Follower")
+                
+        return Select_if_match_card
+    
+
     def BuffSelectedFollowerNum(self, BuffNum):
         def BuffSelectedFollower(Leader, Opponent):
             if len(self.SelectedCard) != 0:
-                Buffed = self.SelectedCard[0]
-                self.power += BuffNum[0]
-                self.MaxHealth += BuffNum[1]
-                self.health += BuffNum[1]
+                Buffed_index = self.SelectedCard[0]
+                Buffed = Leader.field[Buffed_index]
+                Buffed.power += BuffNum[0]
+                Buffed.MaxHealth += BuffNum[1]
+                Buffed.health += BuffNum[1]
             return
         return BuffSelectedFollower
 
