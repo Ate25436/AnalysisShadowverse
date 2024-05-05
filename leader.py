@@ -42,7 +42,7 @@ class Leader():
         if CardIndex < 0 or CardIndex >= len(self.Hand):
             print("There is not card at that place")
             return
-        PlayCard :Card = self.Hand[CardIndex]
+        PlayCard: Card = self.Hand[CardIndex]
         if "select_in_fanfare" in PlayCard.ability:
             if_exist = PlayCard.ability["select_in_fanfare"][0]
             select = PlayCard.ability["select_in_fanfare"][1]
@@ -61,7 +61,6 @@ class Leader():
         if len(self.field) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
             print("There is not sufficient space")
             return
-        PlayCard = self.Hand[CardIndex]
         if PlayCard.CardType == CardType.Amulet or PlayCard.CardType == CardType.Follower:
             self.field.append(PlayCard)
         else:

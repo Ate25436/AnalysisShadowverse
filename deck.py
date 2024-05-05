@@ -44,4 +44,14 @@ AppendCard(deck1, Goblin_Leader, 3)
 Pure_Singer = Card(ClassName.Neutral, Rarity.Silver, 3, "Pure_Singer", CardType.Follower, 1, 2, ability={"fanfare":Card.DrawCardNum(1), "LastWord":Card.DrawCardNum(1)})
 AppendCard(deck1, Pure_Singer, 3)
 
+Skewers_Trap = Card(ClassName.Neutral, Rarity.Bronze, 3, "Skewers_Trap", CardType.Spell, ability={"fanfare":Card.FuncSequence(Card.FollowerDestroy, Card.LeaderDamageNum(2))})
+AppendCard(deck1, Skewers_Trap, 3)
 
+Novice_Trooper = Card(ClassName.Royal, Rarity.Bronze, 3, "Novice_Trooper", CardType.Follower, 2, 2, ability={"sprint":True})
+AppendCard(deck1, Novice_Trooper, 3)
+
+Goliath = Card(ClassName.Neutral, Rarity.Bronze, 4, "Goliath", CardType.Follower, 3, 4)
+AppendCard(deck1, Goliath, 3)
+
+Death_Dance = Card(ClassName.Neutral, Rarity.Bronze, 5, "Death_Dance", CardType.Spell, ability={"fanfare":Card.FuncSequence(Card.FollowerDestroy, Card.LeaderDamageNum(2))})
+AppendCard(deck1, Death_Dance, 1)
