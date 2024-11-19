@@ -57,15 +57,15 @@ class Leader():
                     return
             
             elif PlayCard.CardType == CardType.Spell:
-                print("There is no target")
+                print("!!! There is no target !!!")
                 return
         
         
         if PlayCard.cost > self.PP:
-            print("There is not sufficient PP")
+            print("!!! There is not sufficient PP !!!")
             return
         if len(self.field) == 5 and (PlayCard.CardType == CardType.Follower or PlayCard.CardType == CardType.Amulet):
-            print("There is not sufficient space")
+            print("!!! There is not sufficient space !!!")
             return
         self.Hand.pop(CardIndex)
         if PlayCard.CardType == CardType.Amulet or PlayCard.CardType == CardType.Follower:
@@ -84,7 +84,7 @@ class Leader():
         if AttackedIndex == 6:
             AttackedObject = "Leader"
         if AttackingIndex < 0 or AttackingIndex >= len(self.field):
-            print("There is not card at that place")
+            print("!!! There is not card at that place !!!")
             return
         AttackingCard: Card = self.field[AttackingIndex]
         for card in Opponent.field:
@@ -92,21 +92,21 @@ class Leader():
                 ExistShield = True
                    
         if AttackingCard.CardType == CardType.Amulet or "unattackable" in AttackingCard.ability:
-            print("That card is not able to attack")
+            print("!!! That card is not able to attack !!!")
             return
         if AttackedObject == "Follower":
             if AttackingCard.AttackAuthority == AttackAuthority.CantAttack:
-                print("There is not sufficient authority")
+                print("!!! There is not sufficient authority !!!")
                 return
             if AttackedIndex < 0 or AttackedIndex >= len(Opponent.field):
-                print("There is not card at that place")
+                print("!!! There is not card at that place !!!")
                 return
             AttackedCard: Card = Opponent.field[AttackedIndex]
             if "untouchable" in AttackedCard.ability or AttackedCard.CardType == CardType.Amulet:
-                print("That card is untouchable")
+                print("!!! That card is untouchable !!!")
                 return
             if ExistShield and not("shield" in AttackedCard.ability):
-                print("There is a Follower with shield")
+                print("!!! There is a Follower with shield !!!")
                 return
 
             if "attack" in AttackingCard.ability:
@@ -138,10 +138,10 @@ class Leader():
 
         if AttackedObject == "Leader":
             if AttackingCard.AttackAuthority == AttackAuthority.CantAttack or AttackingCard.AttackAuthority == AttackAuthority.OnlyFollower:
-                print("There is not sufficient authority")
+                print("!!! There is not sufficient authority !!!")
                 return
             if ExistShield :
-                print("There is a Follower with shield")
+                print("!!! There is a Follower with shield !!!")
                 return
             
             if "attack" in AttackingCard.ability:
@@ -163,7 +163,7 @@ class Leader():
             if card.CardName == CardName:
                 self.Hand.append(self.Deck.pop(i))
                 return None
-        print("There is not such a card in Deck")
+        print("!!! There is not such a card in Deck !!!")
             
 
     def TurnChange(self, Opponent: Leader):

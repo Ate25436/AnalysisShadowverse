@@ -19,7 +19,7 @@ def make_deck():
     Goblin = Card(ClassName.Neutral, Rarity.Bronze, cost=1, name="Goblin", CardType=CardType.Follower, power=1, health=2, ability={})
     AppendCard(deck1, Goblin, 3)
 
-    Fighter = Card(ClassName.Neutral, Rarity.Bronze, cost=1, name="Fighter", CardType=CardType.Follower, power=2, health=2, ability={})
+    Fighter = Card(ClassName.Neutral, Rarity.Bronze, cost=2, name="Fighter", CardType=CardType.Follower, power=2, health=2, ability={})
     AppendCard(deck1, Fighter, 3)
 
     QuickBlader = Card(ClassName.Royal, Rarity.Bronze, cost=1, name="QuickBlader", CardType=CardType.Follower, power=1, health=1, ability={"sprint":True})
@@ -103,7 +103,12 @@ def GameStart(Me: Leader, Opponent: Leader):
         Opponent.Turn += 1
     
     
-
+def InputInt(message):
+    input_str = input(message)
+    while not input_str.isdecimal():
+        print("Invalid String")
+        input_str = input(message)
+    return int(input_str)
 
 def main():
     deck1 = make_deck()
@@ -137,12 +142,12 @@ def main():
             break
         
         elif command == 'p':
-            CardIndex = int(input(f"Input card index(0-{max(len(TurnPlayer.Hand) - 1, 0)}): "))
+            CardIndex = InputInt(f"Input card index(0-{max(len(TurnPlayer.Hand) - 1, 0)}): ")
             TurnPlayer.Play(CardIndex, OtherPlayer)
 
         elif command == 'a':
-            AttackIndex = int(input(f"Input card index(0-{max(len(TurnPlayer.field) - 1, 0)}): "))
-            AttackedIndex = int(input(f"Input card index(0-{max(len(OtherPlayer.field) - 1, 0)} or 6): "))
+            AttackIndex = InputInt(f"Input card index(0-{max(len(TurnPlayer.field) - 1, 0)}): ")
+            AttackedIndex = InputInt(f"Input card index(0-{max(len(OtherPlayer.field) - 1, 0)} or 6): ")
             TurnPlayer.Attack(AttackIndex, AttackedIndex, OtherPlayer)
         
         elif command == 'e':

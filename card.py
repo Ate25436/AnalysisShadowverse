@@ -44,9 +44,9 @@ class Card():
     
     def __str__(self) -> str:
         if self.CardType == CardType.Amulet or self.CardType == CardType.Spell:
-            return f"{self.CardName}"
+            return f"{self.CardName}(c: {self.cost})"
         else:
-            return f"{self.CardName}(power:{self.power} health:{self.health})"
+            return f"{self.CardName}(p:{self.power} h:{self.health} c:{self.cost} a:{self.AttackAuthority2str()})"
 
     def Destroyed(self, Leader, Opponent):
         if self.FieldLocation == -1:
@@ -58,6 +58,14 @@ class Card():
         Leader.cemetery += 1
         Leader.Relocation()
     
+    def AttackAuthority2str(self):
+        if self.AttackAuthority == AttackAuthority.CantAttack:
+            return "Can't"
+        elif self.AttackAuthority == AttackAuthority.OnlyFollower:
+            return "Only Follower"
+        elif self.AttackAuthority == AttackAuthority.Attackable:
+            return "Attackable"
+
     @classmethod
     def RepeatNum(cls, func, Num):
         def Repeat(Leader, Opponent):
@@ -108,7 +116,7 @@ class Card():
     @classmethod
     def FollowerDestroy(cls, Leader, Opponent):
         SubjectIndex = IndexError(Opponent)
-        Opponent.field[SubjectIndex].Destroyed()
+        Opponent.field[SubjectIndex].Destroyed(Leader, Opponent)
     
     @classmethod
     def SummonCardNum(cls, Card, Num):
