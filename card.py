@@ -162,12 +162,15 @@ class Card():
 
 
     def SelectCard(self, if_func):
-        def Select_if_match_card(cls, Leader, Opponent):
+        def Select_if_match_card(Leader, Opponent):
             while True:
-                CardIndex = input()
+                CardIndex = input("")
                 if CardIndex == 'q':
-                    break
+                    return False
                 CardIndex = int(CardIndex)
+                if CardIndex < 0 or CardIndex >= len(Leader.field):
+                    print("There is not card")
+                    continue
                 SelectedCard = Leader.field[CardIndex]
                 if if_func(SelectedCard):
                     self.SelectedCard.append(CardIndex)
