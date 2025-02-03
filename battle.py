@@ -135,7 +135,7 @@ def main():
             Opponent.Print()
             TurnPlayer = Opponent
             OtherPlayer = Me
-        command = input("Input \'p\', \'a\', \'e\', \'q\' or \'help\'(\'help\' display what commands mean).: ")
+        command = input("Input \'p\', \'a\', \'end\', \'evolve\', \'q\' or \'help\'(\'help\' display what commands mean).: ")
         if command == 'help':
             print("-\'p\'...Play Card\n-\'a\'...Attack Card\n-\'e\'...End Turn\n-\'q\'...Quit Game\n-\'help\'...Print This Message")
         elif command == 'q':
@@ -150,8 +150,12 @@ def main():
             AttackedIndex = InputInt(f"Input card index(0-{max(len(OtherPlayer.field) - 1, 0)} or 6): ")
             TurnPlayer.Attack(AttackIndex, AttackedIndex, OtherPlayer)
         
-        elif command == 'e':
+        elif command == 'end':
             TurnPlayer.TurnChange(OtherPlayer)
+        
+        elif command == 'evolve':
+            CardIndex = InputInt(f"Input card index(0-{max(len(TurnPlayer.field) - 1, 0)}): ")
+            TurnPlayer.Evolve(CardIndex, OtherPlayer)
 
 
 if __name__ == '__main__':

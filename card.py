@@ -49,6 +49,7 @@ class Card():
             return f"{self.CardName}(p:{self.power} h:{self.health} c:{self.cost} a:{self.AttackAuthority2str()})"
 
     def Destroyed(self, Leader, Opponent):
+        print(f"FieldLocation: {self.FieldLocation}")
         if self.FieldLocation == -1:
             return
         Leader.field.pop(self.FieldLocation)
@@ -66,6 +67,13 @@ class Card():
         elif self.AttackAuthority == AttackAuthority.Attackable:
             return "Attackable"
 
+    def default_evolve(self):
+        self.power += 2
+        self.health += 2
+        self.MaxHealth += 2
+        if self.AttackAuthority == AttackAuthority.CantAttack:
+            self.AttackAuthority = AttackAuthority.OnlyFollower
+        
     @classmethod
     def RepeatNum(cls, func, Num):
         def Repeat(Leader, Opponent):

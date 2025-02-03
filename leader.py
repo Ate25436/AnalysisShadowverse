@@ -28,8 +28,10 @@ class Leader():
         self.advance = advance
         if self.advance:
             self.EP = 2
+            self.EvolvableTurn = 0
         else:
             self.EP = 3
+            self.EvolvableTurn = 0
         self.field = []
         self.Deck = Deck
         self.Evolvable = False
@@ -150,6 +152,25 @@ class Leader():
             Opponent.Health -= AttackingCard.power
         self.GameMaster.SolveLastWord()
         AttackingCard.AttackAuthority = AttackAuthority.CantAttack
+    
+    def Evolve(self, CardIndex: int, Opponent: Leader):
+        if self.EP <= 0:
+            print("!!! There is not sufficient EP !!!")
+            return
+        if self.Evolvable == False:
+            print("!!! Evolution is not allowed this turn !!!")
+            return
+        if CardIndex < 0 or CardIndex >= len(self.field):
+            print("!!! There is not card at that place !!!")
+            return
+        EvolveCard: Card = self.field[CardIndex]
+        
+        if "evolve" in EvolveCard.ability:
+            handler(EvolveCard.ability["evolve"], EvolveCard, self, Opponent)
+        else:
+            EvolveCard.default_evolve()
+        self.EP -= 1
+        self.Evolvable = False
 
     def DrawCard(self):
         if len(self.Deck) > 0:
@@ -189,8 +210,8 @@ class Leader():
         self.GameMaster.SolveStartTurn()
 
         Opponent.Turn += 1
-        if (Opponent.advance == 0 and Opponent.Turn == 4) or (Opponent.advance == 1 and Opponent.Turn == 5):
-            self.Evolvable = True
+        if (Opponent.advance == 0 and Opponent.Turn >= self.EvolvableTurn) or (Opponent.advance == 1 and Opponent.Turn >= self.EvolvableTurn):
+            Opponent.Evolvable = True
             
         for card in Opponent.field:
             if not "unattackable" in card.ability:
