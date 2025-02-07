@@ -71,12 +71,12 @@ class TCGEnv(ParallelEnv):
     def play(self, agent, card_index):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         if self.observation_space[agent][self.HAND][card_index][self.CARD_HEALTH] == 0:
-            return self.observation_space, {agent: -0.02, switch_agent:0.0}, {agent: False, switch_agent: False}, {}
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         card_info = self.observation_space[agent][self.HAND][card_index]
         if card_info[self.CARD_PP] > self.observation_space[agent][self.PP][0]:
-            return self.observation_space, {agent: -0.02, switch_agent:0.0}, {agent: False, switch_agent: False}, {}
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         if self.observation_space[agent][self.MY_FIELD][-1][self.CARD_HEALTH] != 0:
-            return self.observation_space, {agent: -0.02, switch_agent:0.0}, {agent: False, switch_agent: False}, {}
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         done = False
         self.observation_space[agent][self.PP][0] -= card_info[self.CARD_PP]
         self.observation_space[switch_agent][self.PP][1] -= card_info[self.CARD_PP]
@@ -86,12 +86,12 @@ class TCGEnv(ParallelEnv):
         except ValueError:
             self.observation_space[agent][self.PP][0] += card_info[self.CARD_PP]
             self.observation_space[switch_agent][self.PP][1] += card_info[self.CARD_PP]
-            return self.observation_space, -0.02, False, {}
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         self.observation_space[agent][self.MY_FIELD][i] = np.array([card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]).astype(np.float32)
         self.observation_space[switch_agent][self.ENEMY_FIELD][i] = np.array([card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]).astype(np.float32)
         self.observation_space[agent][self.HAND][card_index] = np.array([0, 0, 0, 0]).astype(np.float32)
         if done == False:
-            return self.observation_space, {agent: -0.02, switch_agent:0.0}, {agent: done, switch_agent: done},  {agent: {}, switch_agent: {}}
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: done, switch_agent: done},  {agent: {}, switch_agent: {}}
         else:
             return self.observation_space, {agent: 10.0, switch_agent:-10.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
 
@@ -99,10 +99,14 @@ class TCGEnv(ParallelEnv):
     def end_turn(self, agent):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         self.TurnPlayer = switch_agent
-        self.observation_space[switch_agent][self.PP]
         self.turn[switch_agent] += 1
         self.observation_space[switch_agent][self.PP][0] = min(self.turn[switch_agent], 8).astype(np.float32)
         self.observation_space[agent][self.PP][1] = min(self.turn[switch_agent], 8).astype(np.float32)
+        self.draw_n(switch_agent, 1)
+        for i in range(5):
+            if self.observation_space[switch_agent][self.MY_FIELD][i][self.CARD_HEALTH] != 0:
+                self.observation_space[switch_agent][self.ATTACKABLE][i] = 1
+        return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
 
     def attack(self, agent, attacker_index, attacked_index):
         pass
@@ -120,16 +124,16 @@ class TCGEnv(ParallelEnv):
                 switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
                 self.observation_space[switch_agent][self.ENEMY_FIELD][i] = np.array([1, 1]).astype(np.float32)
             case 2:   #治癒
-                self.observation_space[self.HEALTH][0] = min(self.observation_space[self.HEALTH][0] + 2, 20)
+                self.observation_space[self.HEALTH][0] = min(self.observation_space[self.HEALTH][0] + 2, 20).astype(np.float32)
                 switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.HEALTH][1] = min(self.observation_space[switch_agent][self.HEALTH][1] + 2, 20)
+                self.observation_space[switch_agent][self.HEALTH][1] = min(self.observation_space[switch_agent][self.HEALTH][1] + 2, 20).astype(np.float32)
                 return False
             case 3:   #攻撃
                 done = False
-                self.observation_space[agent][self.HEALTH][1] -= 2
+                self.observation_space[agent][self.HEALTH][1] -= 2.0
                 switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.HEALTH][0] -= 2
-                if self.observation_space[agent][self.HEALTH][1] <= 0:
+                self.observation_space[switch_agent][self.HEALTH][0] -= 2.0
+                if self.observation_space[agent][self.HEALTH][1] <= 0.0:
                     done = True
                 return done
             case 4:   #取得
