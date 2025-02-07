@@ -19,27 +19,45 @@ class TCGEnv(ParallelEnv):
     CARD_PP = 2
     CARD_ABILITY = 3
     def __init__(self):
-
+        self.agents = ['agent_0', 'agent_1']
+        self.possible_agents = self.agents[:]
         self.action_space = {'agent_0': Discrete(40), 'agent_1': Discrete(40)}
-        self.observation_space = {'agent_0': (Box(low=0, high=20, shape=(2, )), #体力
-                                              Box(low=0, high=10, shape=(2, )), #PP
-                                              Box(low=0, high=8, shape=(9, 4)), #手札
-                                              Box(low=0, high=8, shape=(5, 2)), #自分の場
-                                              Box(low=0, high=8, shape=(5, 2)), #相手の場
-                                              Box(low=0, high=1, shape=(5, )), #攻撃可能か
-                                              Box(low=0, high=30, shape=(2, ))), #デッキ枚数
+        self.observation_space = {'agent_0': ((Discrete(21) for _ in range(2)), #体力
+                                              (Discrete(9) for _ in range(2)), #PP
+                                              ((Discrete(9) for _ in range(4)) for _ in range(9)), #手札
+                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #自分の場
+                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #相手の場
+                                              (Discrete(2) for _ in range(5)), #攻撃可能か
+                                              (Discrete(31) for _ in range(2))), #デッキ枚数
                                               'agent_1': 
-                                              (Box(low=0, high=20, shape=(2, )), #体力
-                                              Box(low=0, high=10, shape=(2, )), #PP
-                                              Box(low=0, high=8, shape=(9, 4)), #手札
-                                              Box(low=0, high=8, shape=(5, 2)), #自分の場
-                                              Box(low=0, high=8, shape=(5, 2)), #相手の場
-                                              Box(low=0, high=1, shape=(5, )), #攻撃可能か
-                                              Box(low=0, high=30, shape=(2, ))), #デッキ枚数
+                                              ((Discrete(21) for _ in range(2)), #体力
+                                              (Discrete(9) for _ in range(2)), #PP
+                                              ((Discrete(9) for _ in range(4)) for _ in range(9)), #手札
+                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #自分の場
+                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #相手の場
+                                              (Discrete(2) for _ in range(5)), #攻撃可能か
+                                              (Discrete(31) for _ in range(2))), #デッキ枚数
                                                 }
-        self.decks = {'agent_0': np.array([base_n(i, 8) for i in range(30)]).astype(np.float32), 'agent_1': np.array([base_n(i, 8) for i in range(30)]).astype(np.float32)} #後で変える
         self.TurnPlayer = 'agent_0'
         self.turn = {'agent_0': 1, 'agent_1': 0}
+        self.Health = {'agent_0': 20, 'agent_1': 20}
+        self.PP = {'agent_0': 1, 'agent_1': 0}
+        self.hands = {'agent_0': ((0 for _ in range(4)) for _ in range(9)), 'agent_1': ((0 for _ in range(4)) for _ in range(9))}
+        self.fields = {'agent_0': ((0 for _ in range(2)) for _ in range(5)), 'agent_1': ((0 for _ in range(2)) for _ in range(5))}
+        self.attackable = {'agent_0': (0 for _ in range(5)), 'agent_1': (0 for _ in range(5))}
+        self.deck_num = {'agent_0': 30, 'agent_1': 30}
+        # self.decks = {'agent_0': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)], 'agent_1': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)]} 後で変える
+    
+    def create_observation(self):
+        obs = {agent: ((self.Health[agent], self.Health[self.switch_agent(agent)]), 
+                       (self.PP[agent], self.PP[self.switch_agent(agent)]), 
+                       self.hands[agent], 
+                       self.fields[agent], 
+                       self.fields[self.switch_agent(agent)], 
+                       self.attackable[agent], 
+                       (self.deck_num[agent], self.deck_num[self.switch_agent(agent)])) for agent in self.agents}
+        return obs
+
     def step(self, actions):
         action = actions[self.TurnPlayer]
         agent = self.TurnPlayer
@@ -71,13 +89,17 @@ class TCGEnv(ParallelEnv):
     def play(self, agent, card_index):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         if self.observation_space[agent][self.HAND][card_index][self.CARD_HEALTH] == 0:
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         card_info = self.observation_space[agent][self.HAND][card_index]
         if card_info[self.CARD_PP] > self.observation_space[agent][self.PP][0]:
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         if self.observation_space[agent][self.MY_FIELD][-1][self.CARD_HEALTH] != 0:
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         done = False
+        #---要修正---
         self.observation_space[agent][self.PP][0] -= card_info[self.CARD_PP]
         self.observation_space[switch_agent][self.PP][1] -= card_info[self.CARD_PP]
         done = self.activate_ability(agent, card_info[3])
@@ -94,9 +116,10 @@ class TCGEnv(ParallelEnv):
             return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: done, switch_agent: done},  {agent: {}, switch_agent: {}}
         else:
             return self.observation_space, {agent: 10.0, switch_agent:-10.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
-
+        #------------
         
     def end_turn(self, agent):
+        #---要修正---
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         self.TurnPlayer = switch_agent
         self.turn[switch_agent] += 1
@@ -109,9 +132,13 @@ class TCGEnv(ParallelEnv):
         return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
 
     def attack(self, agent, attacker_index, attacked_index):
-        pass
+        switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
+        if self.observation_space[agent][self.MY_FIELD][attacker_index][self.CARD_HEALTH] == 0:
+            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+        #-------------
 
     def activate_ability(self, agent, ability):
+        #---要修正---
         match ability:
             case 0:   #能力なし
                 return False
@@ -143,7 +170,12 @@ class TCGEnv(ParallelEnv):
                 i = self.observation_space[agent][self.MY_FIELD].index(np.array([0, 0]).astype(np.float32))
                 self.observation_space[agent][self.ATTACKABLE][i] = 1
                 return False
+        #-------------
 
+    
+
+    def switch_agent(self, agent):
+        return 'agent_0' if agent == 'agent_1' else 'agent_1'
     
     def draw_n(self, agent, n):
         for _ in range(n):
@@ -167,3 +199,13 @@ def base_n(num_10,n):
         str_n += str(num_10%n)
         num_10 //= n
     return int(str_n[::-1])
+
+def test():
+    env = TCGEnv()
+    env.reset()
+    env.observation_space['agent_0'][env.MY_FIELD][0] = np.array([1, 1]).astype(np.float32)
+    print(env.observation_space['agent_0'][env.MY_FIELD])
+    print(env.observation_space['agent_1'][env.ENEMY_FIELD])
+
+if __name__ == '__main__':
+    test()
