@@ -6,13 +6,6 @@ from numpy import random as rnd
 
 class TCGEnv(ParallelEnv):
     metadata = {"render.modes": ["human"]}
-    HEALTH = 0
-    PP = 1
-    HAND = 2
-    MY_FIELD = 3
-    ENEMY_FIELD = 4
-    ATTACKABLE = 5
-    DECK = 6
 
     CARD_ATTACK = 0
     CARD_HEALTH = 1
@@ -42,9 +35,9 @@ class TCGEnv(ParallelEnv):
         self.turn = {'agent_0': 1, 'agent_1': 0}
         self.Health = {'agent_0': 20, 'agent_1': 20}
         self.PP = {'agent_0': 1, 'agent_1': 0}
-        self.hands = {'agent_0': ((0 for _ in range(4)) for _ in range(9)), 'agent_1': ((0 for _ in range(4)) for _ in range(9))}
-        self.fields = {'agent_0': ((0 for _ in range(2)) for _ in range(5)), 'agent_1': ((0 for _ in range(2)) for _ in range(5))}
-        self.attackable = {'agent_0': (0 for _ in range(5)), 'agent_1': (0 for _ in range(5))}
+        self.hands = {'agent_0': [[0 for _ in range(4)] for _ in range(9)], 'agent_1': [[0 for _ in range(4)] for _ in range(9)]}
+        self.fields = {'agent_0': [[0 for _ in range(2)] for _ in range(5)], 'agent_1': [[0 for _ in range(2)] for _ in range(5)]}
+        self.attackable = {'agent_0': [0 for _ in range(5)], 'agent_1': [0 for _ in range(5)]}
         self.deck_num = {'agent_0': 30, 'agent_1': 30}
         # self.decks = {'agent_0': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)], 'agent_1': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)]} 後で変える
     
