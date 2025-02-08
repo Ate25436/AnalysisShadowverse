@@ -33,22 +33,21 @@ class TCGEnv(ParallelEnv):
                                                 }
         self.TurnPlayer = 'agent_0'
         self.turn = {'agent_0': 1, 'agent_1': 0}
-        self.Health = {'agent_0': 20, 'agent_1': 20}
+        self.health = {'agent_0': 20, 'agent_1': 20}
         self.PP = {'agent_0': 1, 'agent_1': 0}
         self.hands = {'agent_0': [[0 for _ in range(4)] for _ in range(9)], 'agent_1': [[0 for _ in range(4)] for _ in range(9)]}
         self.fields = {'agent_0': [[0 for _ in range(2)] for _ in range(5)], 'agent_1': [[0 for _ in range(2)] for _ in range(5)]}
         self.attackable = {'agent_0': [0 for _ in range(5)], 'agent_1': [0 for _ in range(5)]}
-        self.deck_num = {'agent_0': 30, 'agent_1': 30}
-        # self.decks = {'agent_0': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)], 'agent_1': [np.array([1, 1, 1, 0]).astype(np.float32) for _ in range(30)]} 後で変える
+        self.decks = {'agent_0': [[1, 1, 1, 0] for _ in range(30)], 'agent_1': [[1, 1, 1, 0] for _ in range(30)]} #後で変える
     
     def create_observation(self):
-        obs = {agent: ((self.Health[agent], self.Health[self.switch_agent(agent)]), 
+        obs = {agent: ((self.health[agent], self.health[self.switch_agent(agent)]), 
                        (self.PP[agent], self.PP[self.switch_agent(agent)]), 
-                       self.hands[agent], 
-                       self.fields[agent], 
-                       self.fields[self.switch_agent(agent)], 
-                       self.attackable[agent], 
-                       (self.deck_num[agent], self.deck_num[self.switch_agent(agent)])) for agent in self.agents}
+                       tuple(tuple(hand) for hand in self.hands[agent]), 
+                       tuple(tuple(card) for card in self.fields[agent]), 
+                       tuple(tuple(card) for card in self.fields[self.switch_agent(agent)]), 
+                       tuple(self.attackable[agent]), 
+                       (len(self.decks[agent]), len(self.decks[self.switch_agent(agent)]))) for agent in self.agents}
         return obs
 
     def step(self, actions):
@@ -81,34 +80,32 @@ class TCGEnv(ParallelEnv):
 
     def play(self, agent, card_index):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-        if self.observation_space[agent][self.HAND][card_index][self.CARD_HEALTH] == 0:
+        if self.hands[agent][card_index][self.CARD_HEALTH] == 0:
             observation = self.create_observation()
             return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
-        card_info = self.observation_space[agent][self.HAND][card_index]
-        if card_info[self.CARD_PP] > self.observation_space[agent][self.PP][0]:
+        card_info = self.hands[agent][card_index]
+        if card_info[self.CARD_PP] > self.PP[agent]:
             observation = self.create_observation()
             return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
-        if self.observation_space[agent][self.MY_FIELD][-1][self.CARD_HEALTH] != 0:
+        field_index = self.find_empty_field(agent)
+        if field_index == -1:
             observation = self.create_observation()
             return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         done = False
         #---要修正---
-        self.observation_space[agent][self.PP][0] -= card_info[self.CARD_PP]
-        self.observation_space[switch_agent][self.PP][1] -= card_info[self.CARD_PP]
-        done = self.activate_ability(agent, card_info[3])
-        try:
-            i = self.observation_space[agent][self.MY_FIELD].index(np.array([0, 0]).astype(np.float32))
-        except ValueError:
-            self.observation_space[agent][self.PP][0] += card_info[self.CARD_PP]
-            self.observation_space[switch_agent][self.PP][1] += card_info[self.CARD_PP]
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
-        self.observation_space[agent][self.MY_FIELD][i] = np.array([card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]).astype(np.float32)
-        self.observation_space[switch_agent][self.ENEMY_FIELD][i] = np.array([card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]).astype(np.float32)
-        self.observation_space[agent][self.HAND][card_index] = np.array([0, 0, 0, 0]).astype(np.float32)
+        self.PP[agent] -= card_info[self.CARD_PP]
+        self.fields[agent][field_index] = [card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]
+        done = self.activate_ability(agent, card_info[3], field_index=field_index)
+        self.hands[agent][card_index] = [0, 0, 0, 0]
         if done == False:
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: done, switch_agent: done},  {agent: {}, switch_agent: {}}
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: done, switch_agent: done},  {agent: {}, switch_agent: {}}
         else:
-            return self.observation_space, {agent: 10.0, switch_agent:-10.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
+            observation = self.create_observation()
+            if self.health[switch_agent] <= 0:
+                return observation, {agent: 100.0, switch_agent:-100.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
+            elif self.len(self.decks[agent]) <= 0:
+                return observation, {agent: -100.0, switch_agent:100.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
         #------------
         
     def end_turn(self, agent):
@@ -116,56 +113,63 @@ class TCGEnv(ParallelEnv):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         self.TurnPlayer = switch_agent
         self.turn[switch_agent] += 1
-        self.observation_space[switch_agent][self.PP][0] = min(self.turn[switch_agent], 8).astype(np.float32)
-        self.observation_space[agent][self.PP][1] = min(self.turn[switch_agent], 8).astype(np.float32)
+        self.PP[switch_agent] = min(self.turn[switch_agent], 8)
         self.draw_n(switch_agent, 1)
         for i in range(5):
-            if self.observation_space[switch_agent][self.MY_FIELD][i][self.CARD_HEALTH] != 0:
-                self.observation_space[switch_agent][self.ATTACKABLE][i] = 1
-        return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            if self.fields[switch_agent][i][self.CARD_HEALTH] != 0:
+                self.attackable[switch_agent][i] = 1
+        observation = self.create_observation()
+        return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
 
     def attack(self, agent, attacker_index, attacked_index):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-        if self.observation_space[agent][self.MY_FIELD][attacker_index][self.CARD_HEALTH] == 0:
-            return self.observation_space, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+        if self.fields[agent][attacker_index][self.CARD_HEALTH] == 0:
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         #-------------
 
-    def activate_ability(self, agent, ability):
+    def activate_ability(self, agent, ability, field_index=None):
         #---要修正---
+        switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         match ability:
             case 0:   #能力なし
                 return False
             case 1:   #召喚
                 try:
-                    i = self.observation_space[agent][self.MY_FIELD].index(np.array([0, 0]).astype(np.float32))
+                    i = self.fields[agent].index([0, 0])
                 except ValueError:
                     return False
-                self.observation_space[agent][self.MY_FIELD][i] = np.array([1, 1]).astype(np.float32)
-                switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.ENEMY_FIELD][i] = np.array([1, 1]).astype(np.float32)
+                self.fields[agent][i] = [1, 1]
+                return False
             case 2:   #治癒
-                self.observation_space[self.HEALTH][0] = min(self.observation_space[self.HEALTH][0] + 2, 20).astype(np.float32)
-                switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.HEALTH][1] = min(self.observation_space[switch_agent][self.HEALTH][1] + 2, 20).astype(np.float32)
+                self.health[agent] = min(self.health[agent] + 2, 20)
                 return False
             case 3:   #攻撃
                 done = False
-                self.observation_space[agent][self.HEALTH][1] -= 2.0
-                switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.HEALTH][0] -= 2.0
-                if self.observation_space[agent][self.HEALTH][1] <= 0.0:
+                self.health[switch_agent] -= 2
+                if self.health[switch_agent] <= 0:
                     done = True
                 return done
             case 4:   #取得
                 done = self.draw_n(agent, 1)
                 return done
             case 5:   #速攻
-                i = self.observation_space[agent][self.MY_FIELD].index(np.array([0, 0]).astype(np.float32))
-                self.observation_space[agent][self.ATTACKABLE][i] = 1
+                self.attackable[agent][field_index] = 1
                 return False
         #-------------
-
+    def find_empty_field(self, agent):
+        try:
+            i = self.fields[agent].index([0, 0])
+        except ValueError:
+            return -1
+        return i
     
+    def find_empty_hand(self, agent):
+        try:
+            i = self.hands[agent].index([0, 0, 0, 0])
+        except ValueError:
+            return -1
+        return i
 
     def switch_agent(self, agent):
         return 'agent_0' if agent == 'agent_1' else 'agent_1'
@@ -174,15 +178,14 @@ class TCGEnv(ParallelEnv):
         for _ in range(n):
             deck = self.decks[agent]
             if len(deck) == 0:
-                return False
+                return True
             else:
                 rnd.shuffle(deck)
                 card = deck.pop()
-                self.observation_space[agent][self.HAND][self.observation_space[agent][self.HAND].index(np.array([0, 0, 0, 0]).astype(np.float32))] = card
-                self.observation_space[agent][self.DECK][0] -= 1
-                switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
-                self.observation_space[switch_agent][self.DECK][1] -= 1
-        return True
+                card_index = self.find_empty_hand(agent)
+                if card_index != -1:
+                    self.hands[agent][card_index] = card
+        return False
             
 def base_n(num_10,n):
     str_n = ''
@@ -196,9 +199,7 @@ def base_n(num_10,n):
 def test():
     env = TCGEnv()
     env.reset()
-    env.observation_space['agent_0'][env.MY_FIELD][0] = np.array([1, 1]).astype(np.float32)
-    print(env.observation_space['agent_0'][env.MY_FIELD])
-    print(env.observation_space['agent_1'][env.ENEMY_FIELD])
+    print(env.create_observation())
 
 if __name__ == '__main__':
     test()
