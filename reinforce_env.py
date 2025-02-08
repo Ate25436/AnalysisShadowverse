@@ -3,6 +3,7 @@ from gymnasium.spaces import Discrete, Box
 from pettingzoo import ParallelEnv
 import numpy as np
 from numpy import random as rnd
+import copy
 
 class TCGEnv(ParallelEnv):
     metadata = {"render.modes": ["human"]}
@@ -67,8 +68,16 @@ class TCGEnv(ParallelEnv):
         pass
 
     def render(self, mode='human'):
-        pass
-
+        if mode == 'human':
+            observation = self.create_observation()
+            for agent in self.agents:
+                print(f'{agent}:')
+                print(f'health: {observation[agent][0][0]}, PP: {observation[agent][1][0]}')
+                print(f'hand: {"; ".join(" ".join(str(item) for item in card) for card in observation[agent][2])}\n')
+                print(f'field: {"; ".join(" ".join(str(item) for item in card) for card in observation[agent][3])}')
+                print(f'attackable: {observation[agent][5]}')
+                print(f'deck_num: {observation[agent][6][0]}')
+                print()
     def close(self):
         pass
 
@@ -92,7 +101,6 @@ class TCGEnv(ParallelEnv):
             observation = self.create_observation()
             return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         done = False
-        #---要修正---
         self.PP[agent] -= card_info[self.CARD_PP]
         self.fields[agent][field_index] = [card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]
         done = self.activate_ability(agent, card_info[3], field_index=field_index)
@@ -106,10 +114,8 @@ class TCGEnv(ParallelEnv):
                 return observation, {agent: 100.0, switch_agent:-100.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
             elif self.len(self.decks[agent]) <= 0:
                 return observation, {agent: -100.0, switch_agent:100.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
-        #------------
         
     def end_turn(self, agent):
-        #---要修正---
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         self.TurnPlayer = switch_agent
         self.turn[switch_agent] += 1
@@ -126,10 +132,30 @@ class TCGEnv(ParallelEnv):
         if self.fields[agent][attacker_index][self.CARD_HEALTH] == 0:
             observation = self.create_observation()
             return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
-        #-------------
+        if attacked_index <= 4 and self.fields[switch_agent][attacked_index][self.CARD_HEALTH] == 0:
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+        if self.attackable[agent][attacker_index] == 0:
+            observation = self.create_observation()
+            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+        if attacked_index <= 4:
+            self.fields[switch_agent][attacked_index][self.CARD_HEALTH] -= self.fields[agent][attacker_index][self.CARD_ATTACK]
+        elif attacked_index == 5:
+            self.health[switch_agent] -= self.fields[agent][attacker_index][self.CARD_ATTACK]
+        if attacked_index <= 4:
+            self.fields[agent][attacker_index][self.CARD_HEALTH] -= self.fields[switch_agent][attacked_index][self.CARD_ATTACK]
+        elif attacked_index == 5:
+            pass
+
+        if attacked_index <= 4 and self.fields[switch_agent][attacked_index][self.CARD_HEALTH] <= 0:
+            self.fields[switch_agent][attacked_index] = [0, 0]
+        if self.fields[agent][attacker_index][self.CARD_HEALTH] <= 0:
+            self.fields[agent][attacker_index] = [0, 0]
+        self.attackable[agent][attacker_index] = 0
+        observation = self.create_observation()
+        return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
 
     def activate_ability(self, agent, ability, field_index=None):
-        #---要修正---
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         match ability:
             case 0:   #能力なし
@@ -156,7 +182,6 @@ class TCGEnv(ParallelEnv):
             case 5:   #速攻
                 self.attackable[agent][field_index] = 1
                 return False
-        #-------------
     def find_empty_field(self, agent):
         try:
             i = self.fields[agent].index([0, 0])
@@ -174,6 +199,28 @@ class TCGEnv(ParallelEnv):
     def switch_agent(self, agent):
         return 'agent_0' if agent == 'agent_1' else 'agent_1'
     
+    def t_save_env(self):
+        save_env = {
+            'TurnPlayer': self.TurnPlayer,
+            'turn': copy.deepcopy(self.turn),
+            'health': copy.deepcopy(self.health),
+            'PP': copy.deepcopy(self.PP),
+            'hands': copy.deepcopy(self.hands),
+            'fields': copy.deepcopy(self.fields),
+            'attackable': copy.deepcopy(self.attackable),
+            'decks': copy.deepcopy(self.decks)
+        }
+        return save_env
+    def t_load_env(self, save_env):
+        self.TurnPlayer = save_env['TurnPlayer']
+        self.turn = copy.deepcopy(save_env['turn'])
+        self.health = copy.deepcopy(save_env['health'])
+        self.PP = copy.deepcopy(save_env['PP'])
+        self.hands = copy.deepcopy(save_env['hands'])
+        self.fields = copy.deepcopy(save_env['fields'])
+        self.attackable = copy.deepcopy(save_env['attackable'])
+        self.decks = copy.deepcopy(save_env['decks'])
+
     def draw_n(self, agent, n):
         for _ in range(n):
             deck = self.decks[agent]
@@ -199,7 +246,23 @@ def base_n(num_10,n):
 def test():
     env = TCGEnv()
     env.reset()
-    print(env.create_observation())
-
+    
+    env.PP['agent_0'] = 8
+    test_cards = [[1, 1, 1, 0], [2, 2, 2, 0], [3, 3, 3, 0]]
+    for i in range(len(test_cards)):
+        test_card_0 = copy.deepcopy(test_cards[i][0:2])
+        test_card_1 = copy.deepcopy(test_cards[i][0:2])
+        env.fields['agent_0'][i] = test_card_0
+        env.fields['agent_1'][i] = test_card_1
+    for i in range(len(test_cards)):
+        test_card_0 = copy.deepcopy(test_cards[i])
+        test_card_1 = copy.deepcopy(test_cards[i])
+        env.hands['agent_0'][i] = test_card_0
+        env.hands['agent_1'][i] = test_card_1
+    env.render()
+    save_env = env.t_save_env()
+    env.step({'agent_0': 39, 'agent_1': 39})
+    print('-'*32)
+    env.render()
 if __name__ == '__main__':
     test()
