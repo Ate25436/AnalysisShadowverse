@@ -12,43 +12,54 @@ class TCGEnv(ParallelEnv):
     CARD_HEALTH = 1
     CARD_PP = 2
     CARD_ABILITY = 3
+    card_map = {
+        'card_0': [4, 4, 1, 0],
+        'card_1': [2, 2, 2, 0],
+        'card_2': [3, 3, 3, 0],
+        'card_3': [4, 3, 4, 0],
+        'card_4': [5, 4, 5, 0],
+        'card_5': [2, 2, 2, 1],
+        'card_6': [2, 3, 3, 1],
+        'card_7': [1, 1, 1, 4],
+        'card_8': [1, 3, 2, 4],
+        'card_9': [2, 1, 2, 5],
+        'card_10': [3, 1, 3, 5],
+        'card_11': [1, 2, 2, 3],
+        'card_12': [2, 3, 3, 3],
+        'card_13': [1, 1, 1, 2],
+        'card_14': [1, 1, 5, 2],
+    }
     def __init__(self):
         self.agents = ['agent_0', 'agent_1']
         self.possible_agents = self.agents[:]
-        self.action_space = {'agent_0': Discrete(40), 'agent_1': Discrete(40)}
-        self.observation_space = {'agent_0': ((Discrete(21) for _ in range(2)), #体力
-                                              (Discrete(9) for _ in range(2)), #PP
-                                              ((Discrete(9) for _ in range(4)) for _ in range(9)), #手札
-                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #自分の場
-                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #相手の場
-                                              (Discrete(2) for _ in range(5)), #攻撃可能か
-                                              (Discrete(31) for _ in range(2))), #デッキ枚数
-                                              'agent_1': 
-                                              ((Discrete(21) for _ in range(2)), #体力
-                                              (Discrete(9) for _ in range(2)), #PP
-                                              ((Discrete(9) for _ in range(4)) for _ in range(9)), #手札
-                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #自分の場
-                                              ((Discrete(9) for _ in range(2)) for _ in range(5)), #相手の場
-                                              (Discrete(2) for _ in range(5)), #攻撃可能か
-                                              (Discrete(31) for _ in range(2))), #デッキ枚数
-                                                }
-        self.TurnPlayer = 'agent_0'
+        self.action_spaces = {'agent_0': Discrete(40), 'agent_1': Discrete(40)}
+        self.observation_spaces = {'agent_0': Box(low=0, high=30, shape=(67, ), dtype=np.uint16), 'agent_1': Box(low=0, high=30, shape=(67, ), dtype=np.uint16)}
         self.turn = {'agent_0': 1, 'agent_1': 0}
         self.health = {'agent_0': 20, 'agent_1': 20}
         self.PP = {'agent_0': 1, 'agent_1': 0}
         self.hands = {'agent_0': [[0 for _ in range(4)] for _ in range(9)], 'agent_1': [[0 for _ in range(4)] for _ in range(9)]}
         self.fields = {'agent_0': [[0 for _ in range(2)] for _ in range(5)], 'agent_1': [[0 for _ in range(2)] for _ in range(5)]}
         self.attackable = {'agent_0': [0 for _ in range(5)], 'agent_1': [0 for _ in range(5)]}
-        self.decks = {'agent_0': [[1, 1, 1, 0] for _ in range(30)], 'agent_1': [[1, 1, 1, 0] for _ in range(30)]} #後で変える
+        deck = []
+        for i in range(15):
+            deck += [self.card_map[f'card_{i}'] for _ in range(2)]
+        self.decks = {'agent_0': copy.deepcopy(deck), 'agent_1': copy.deepcopy(deck)}
+        self.render_mode = 'human'
     
     def create_observation(self):
-        obs = {agent: ((self.health[agent], self.health[self.switch_agent(agent)]), 
-                       (self.PP[agent], self.PP[self.switch_agent(agent)]), 
-                       tuple(tuple(hand) for hand in self.hands[agent]), 
-                       tuple(tuple(card) for card in self.fields[agent]), 
-                       tuple(tuple(card) for card in self.fields[self.switch_agent(agent)]), 
-                       tuple(self.attackable[agent]), 
-                       (len(self.decks[agent]), len(self.decks[self.switch_agent(agent)]))) for agent in self.agents}
+
+        obs = {}
+        for agent in self.agents:
+            switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
+            concated_obs = []
+            concated_obs += [self.health[agent], self.health[switch_agent]]
+            concated_obs += [self.PP[agent], self.PP[switch_agent]]
+            concated_obs += flatten_list(self.hands[agent])
+            concated_obs += flatten_list(self.fields[agent])
+            concated_obs += self.attackable[agent]
+            concated_obs += [len(self.decks[agent]), len(self.decks[switch_agent])]
+            obs[agent] = np.array(concated_obs).astype(np.uint16)
+            print(type(obs[agent]))
         return obs
 
     def step(self, actions):
@@ -64,8 +75,21 @@ class TCGEnv(ParallelEnv):
             obs, reward, done, info = self.attack(agent, (action - 9) // 6, (action - 9) % 6)
             return obs, reward, done, info
 
-    def reset(self):
-        pass
+    def reset(self, seed=None, options=None):
+        self.TurnPlayer = 'agent_0'
+        self.turn = {'agent_0': 1, 'agent_1': 0}
+        self.health = {'agent_0': 20, 'agent_1': 20}
+        self.PP = {'agent_0': 1, 'agent_1': 0}
+        self.fields = {'agent_0': [[0, 0] for _ in range(5)], 'agent_1': [[0, 0] for _ in range(5)]}
+        self.attackable = {'agent_0': [0 for _ in range(5)], 'agent_1': [0 for _ in range(5)]}
+        deck = []
+        for i in range(15):
+            deck += [self.card_map[f'card_{i}'] for _ in range(2)]
+        self.decks = {'agent_0': copy.deepcopy(deck), 'agent_1': copy.deepcopy(deck)}
+        self.draw_n('agent_0', 5)
+        self.draw_n('agent_1', 5)
+        return self.create_observation(), {agent: {} for agent in self.agents}
+
 
     def render(self, mode='human'):
         if mode == 'human':
@@ -86,6 +110,12 @@ class TCGEnv(ParallelEnv):
 
     def configure(self, *args, **kwargs):
         pass
+    
+    def observation_space(self, agent):
+        return self.observation_spaces[agent]
+    
+    def action_space(self, agent):
+        return self.action_spaces[agent]
 
     def play(self, agent, card_index):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
@@ -182,6 +212,8 @@ class TCGEnv(ParallelEnv):
             case 5:   #速攻
                 self.attackable[agent][field_index] = 1
                 return False
+            case _:  #その他
+                return False
     def find_empty_field(self, agent):
         try:
             i = self.fields[agent].index([0, 0])
@@ -243,26 +275,11 @@ def base_n(num_10,n):
         num_10 //= n
     return int(str_n[::-1])
 
+def flatten_list(l):
+    return [item for sublist in l for item in sublist]
+
 def test():
-    env = TCGEnv()
-    env.reset()
-    
-    env.PP['agent_0'] = 8
-    test_cards = [[1, 1, 1, 0], [2, 2, 2, 0], [3, 3, 3, 0]]
-    for i in range(len(test_cards)):
-        test_card_0 = copy.deepcopy(test_cards[i][0:2])
-        test_card_1 = copy.deepcopy(test_cards[i][0:2])
-        env.fields['agent_0'][i] = test_card_0
-        env.fields['agent_1'][i] = test_card_1
-    for i in range(len(test_cards)):
-        test_card_0 = copy.deepcopy(test_cards[i])
-        test_card_1 = copy.deepcopy(test_cards[i])
-        env.hands['agent_0'][i] = test_card_0
-        env.hands['agent_1'][i] = test_card_1
-    env.render()
-    save_env = env.t_save_env()
-    env.step({'agent_0': 39, 'agent_1': 39})
-    print('-'*32)
-    env.render()
+    test_list = [[0, 0], [1, 1]]
+    print(flatten_list(test_list))
 if __name__ == '__main__':
     test()
