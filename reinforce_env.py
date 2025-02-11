@@ -5,6 +5,8 @@ import numpy as np
 from numpy import random as rnd
 import copy
 
+MAX_STEP = 5000
+
 class TCGEnv(ParallelEnv):
     metadata = {"render.mode": ["human"]}
     render_mode = 'human'
@@ -30,6 +32,12 @@ class TCGEnv(ParallelEnv):
         'card_13': [1, 1, 1, 2],
         'card_14': [1, 1, 5, 2],
     }
+    rewards_map = {
+        'punish': 0.0,
+        'reward': 0.0,
+        'win': 1.0,
+        'lose': -1.0
+    }
     def __init__(self):
         self.agents = ['agent_0', 'agent_1']
         self.possible_agents = self.agents[:]
@@ -47,7 +55,7 @@ class TCGEnv(ParallelEnv):
             deck += [self.card_map[f'card_{i}'] for _ in range(2)]
         self.decks = {'agent_0': copy.deepcopy(deck), 'agent_1': copy.deepcopy(deck)}
         self.trancated = {agent: False for agent in self.agents}
-
+        self.steps = 0
     
     def create_observation(self):
 
@@ -67,7 +75,11 @@ class TCGEnv(ParallelEnv):
 
     def step(self, actions):
         if all(self.turn[agent] >= self.MAX_TURN for agent in self.agents):
-            return self.create_observation(), {agent: -100.0 for agent in self.agents}, {agent: True for agent in self.agents}, self.trancated, {agent: {} for agent in self.agents}
+            return self.create_observation(), {agent: self.rewards_map['lose'] for agent in self.agents}, {agent: True for agent in self.agents}, self.trancated, {agent: {} for agent in self.agents}
+        # if self.steps >= MAX_STEP:
+        #     self.steps = 0
+        #     return self.create_observation(), {agent: self.rewards_map['lose'] for agent in self.agents}, {agent: True for agent in self.agents}, self.trancated, {agent: {} for agent in self.agents}
+        # self.steps += 1
         action = actions[self.TurnPlayer]
         agent = self.TurnPlayer
         if 0 <= action <= 8:
@@ -85,6 +97,7 @@ class TCGEnv(ParallelEnv):
         self.turn = {'agent_0': 1, 'agent_1': 0}
         self.health = {'agent_0': 20, 'agent_1': 20}
         self.PP = {'agent_0': 1, 'agent_1': 0}
+        self.hands = {'agent_0': [[0, 0, 0, 0] for _ in range(9)], 'agent_1': [[0, 0, 0, 0] for _ in range(9)]}
         self.fields = {'agent_0': [[0, 0] for _ in range(5)], 'agent_1': [[0, 0] for _ in range(5)]}
         self.attackable = {'agent_0': [0 for _ in range(5)], 'agent_1': [0 for _ in range(5)]}
         deck = []
@@ -125,20 +138,20 @@ class TCGEnv(ParallelEnv):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
         if self.hands[agent][card_index][self.CARD_HEALTH] == 0:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         card_info = self.hands[agent][card_index]
         if card_info[self.CARD_PP] > self.PP[agent]:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         field_index = self.find_empty_field(agent)
         if field_index == -1:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         done = False
         self.PP[agent] -= card_info[self.CARD_PP]
         self.hands[agent][card_index] = [0, 0, 0, 0]
         self.fields[agent][field_index] = [card_info[self.CARD_ATTACK], card_info[self.CARD_HEALTH]]
-        done, rewards = self.activate_ability(agent, card_info[3], field_index=field_index)
+        done, rewards = self.activate_ability(agent, card_info, field_index=field_index)
         return self.create_observation(), rewards, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
         
     def end_turn(self, agent):
@@ -149,7 +162,7 @@ class TCGEnv(ParallelEnv):
         done = self.draw_n(switch_agent, 1)
         if done:
             observation = self.create_observation()
-            return observation, {agent: 100.0, switch_agent:-100.0}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['win'], switch_agent:self.rewards_map['lose']}, {agent: done, switch_agent: done}, {agent: {}, switch_agent: {}}
         for i in range(5):
             if self.fields[switch_agent][i][self.CARD_HEALTH] != 0:
                 self.attackable[switch_agent][i] = 1
@@ -162,13 +175,13 @@ class TCGEnv(ParallelEnv):
         attacker_destruction = False
         if self.fields[agent][attacker_index][self.CARD_HEALTH] == 0:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         if attacked_index <= 4 and self.fields[switch_agent][attacked_index][self.CARD_HEALTH] == 0:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         if self.attackable[agent][attacker_index] == 0:
             observation = self.create_observation()
-            return observation, {agent: -0.01, switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
+            return observation, {agent: self.rewards_map['punish'], switch_agent:0.0}, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
         if attacked_index <= 4:
             self.fields[switch_agent][attacked_index][self.CARD_HEALTH] -= self.fields[agent][attacker_index][self.CARD_ATTACK]
         elif attacked_index == 5:
@@ -189,52 +202,54 @@ class TCGEnv(ParallelEnv):
         self.attackable[agent][attacker_index] = 0
         if attacked_index <= 4:
             if attacked_destruction and attacker_destruction:
-                rewards = {agent: 0.02, switch_agent: 0.0}
+                rewards = {agent: self.rewards_map['reward'], switch_agent: 0.0}
             elif attacked_destruction:
-                rewards = {agent: -0.03, switch_agent: 0.0}
+                rewards = {agent: self.rewards_map['reward'], switch_agent: 0.0}
             elif attacker_destruction:
-                rewards = {agent: 0.03, switch_agent: 0.0}
+                rewards = {agent: 0.0, switch_agent: 0.0}
             else:
-                rewards = {agent: 0.01, switch_agent: 0.0}
+                rewards = {agent: self.rewards_map['reward'], switch_agent: 0.0}
         else:
             if self.health[switch_agent] <= 0:
-                rewards = {agent: 100.0, switch_agent: -100.0}
+                rewards = {agent: self.rewards_map['win'], switch_agent: self.rewards_map['lose']}
             else:
-                rewards = {agent: 0.01 * self.fields[agent][attacker_index][self.CARD_ATTACK], switch_agent: 0.0}
+                rewards = {agent: self.rewards_map['reward'] * self.fields[agent][attacker_index][self.CARD_ATTACK], switch_agent: 0.0}
         observation = self.create_observation()
         return observation, rewards, {agent: False, switch_agent: False}, {agent: {}, switch_agent: {}}
 
-    def activate_ability(self, agent, ability, field_index=None):
+    def activate_ability(self, agent, card_info, field_index=None):
         switch_agent = 'agent_0' if agent == 'agent_1' else 'agent_1'
+        ability = card_info[self.CARD_ABILITY]
+        mana_ratio = (card_info[self.CARD_ATTACK] + card_info[self.CARD_HEALTH]) / 2 * card_info[self.CARD_PP]
         match ability:
             case 0:   #能力なし
-                return False, {agent: 0.01, switch_agent: 0.00}
+                return False, {agent: self.rewards_map['reward'] * mana_ratio, switch_agent: 0.00}
             case 1:   #召喚
                 try:
                     i = self.fields[agent].index([0, 0])
                 except ValueError:
-                    return False, {agent: 0.01, switch_agent: 0.00}
+                    return False, {agent: self.rewards_map['reward'] * mana_ratio, switch_agent: 0.00}
                 self.fields[agent][i] = [1, 1]
-                return False, {agent: 0.02, switch_agent: 0.00}
+                return False, {agent: self.rewards_map['reward'] * (1 + mana_ratio), switch_agent: 0.00}
             case 2:   #治癒
                 old_health = self.health[agent]
                 self.health[agent] = min(self.health[agent] + 2, 20)
-                return False, {'agent_0': 0.01 + 0.01 * (self.health[agent] - old_health), 'agent_1': 0.00}
+                return False, {'agent_0': self.rewards_map['reward'] * mana_ratio + self.rewards_map['reward'] * (self.health[agent] - old_health), 'agent_1': 0.00}
             case 3:   #攻撃
                 done = False
                 self.health[switch_agent] -= 2
                 if self.health[switch_agent] <= 0:
                     done = True
-                    return done, {agent: 100.0, switch_agent: -100.0}
-                return done, {agent: 0.03, switch_agent: 0.00}
+                    return done, {agent: self.rewards_map['win'], switch_agent: self.rewards_map['lose']}
+                return done, {agent: self.rewards_map['reward'] * (2 + mana_ratio), switch_agent: 0.00}
             case 4:   #取得
                 done = self.draw_n(agent, 1)
                 if done:
-                    return done, {agent: -100.0, switch_agent: 100.0}
-                return False, {agent: 0.02, switch_agent: 0.00}
+                    return done, {agent: self.rewards_map['lose'], switch_agent: self.rewards_map['win']}
+                return False, {agent: self.rewards_map['reward'] * (1 + mana_ratio), switch_agent: 0.00}
             case 5:   #速攻
                 self.attackable[agent][field_index] = 1
-                return False, {agent: 0.02, switch_agent: 0.00}
+                return False, {agent: self.rewards_map['reward'] * (1 + mana_ratio), switch_agent: 0.00}
             case _:  #その他
                 return False, {agent: 0.0, switch_agent: 0.0}
     def find_empty_field(self, agent):
@@ -275,6 +290,18 @@ class TCGEnv(ParallelEnv):
         self.fields = copy.deepcopy(save_env['fields'])
         self.attackable = copy.deepcopy(save_env['attackable'])
         self.decks = copy.deepcopy(save_env['decks'])
+
+    def env_to_text(self):
+        text_list = [
+            f'''
+            agent: {agent}
+            health: {self.health[agent]}, PP: {self.PP[agent]}
+            hand: {"; ".join(" ".join(str(item) for item in card) for card in self.hands[agent])}
+            field: {"; ".join(" ".join(str(item) for item in card) for card in self.fields[agent])}
+            attackable: {self.attackable[agent]}
+            deck_num: {len(self.decks[agent])}''' for agent in self.agents
+        ]
+        return '\n'.join(text_list)
 
     def draw_n(self, agent, n):
         for _ in range(n):
