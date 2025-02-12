@@ -11,10 +11,10 @@ done = False
 
 i = 0
 
-iter_num = 20
+iter_num = 100
 with open('log.txt', 'w') as f:
     f.write('')
-    while i < iter_num:
+    while not done and i < iter_num:
         agent = env.TurnPlayer
         switch_agent = 'agent_1' if agent == 'agent_0' else 'agent_0'
         save_env_before = env.t_save_env()

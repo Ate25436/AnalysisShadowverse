@@ -33,7 +33,7 @@ class TCGEnv(ParallelEnv):
         'card_14': [1, 1, 5, 2],
     }
     rewards_map = {
-        'punish': 0.0,
+        'punish': -0.01,
         'reward': 0.0,
         'win': 1.0,
         'lose': -1.0
