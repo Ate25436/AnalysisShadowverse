@@ -112,7 +112,7 @@ Shadowverse 様公式サイト: [ルール説明](https://shadowverse.jp/gamegui
 
 2. マリガン
 ![image](./img/mulligan.png)
-   - 初手のカードの入れ変えを行う
+   - 初手のカードの入れ替えを行う
    - 白枠の中が今の自分の持ち手札で入れ替えたいカードを左から 0-index，スペース区切りで指定する
 
    例: Healing_AngelとFighterを入れ替えたい場合は
