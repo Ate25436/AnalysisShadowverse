@@ -46,7 +46,7 @@ class Card():
         if self.CardType == CardType.Amulet or self.CardType == CardType.Spell:
             return f"{self.CardName}(c: {self.cost})"
         else:
-            return f"{self.CardName}(p:{self.power} h:{self.health} c:{self.cost} a:{self.AttackAuthority2str()})"
+            return f"{self.CardName}(p:{self.power} h:{self.health} c:{self.cost})"
 
     def Destroyed(self, Leader, Opponent):
         print(f"FieldLocation: {self.FieldLocation}")
@@ -105,7 +105,7 @@ class Card():
     def LeaderDamageNum(cls, Num):
         def LeaderDamage(Leader, Opponent):
             Opponent.Health -= Num
-        return LeaderDamage #Numに指定した分だけの回復を行う関数のポインタを返す
+        return LeaderDamage #Numに指定した分だけダメージを与える関数のポインタを返す
     
     @classmethod
     def FollowerHealNum(cls, Num):
