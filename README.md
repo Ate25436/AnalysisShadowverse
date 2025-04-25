@@ -9,7 +9,7 @@ Shadowverse 様公式サイト: [ルール説明](https://shadowverse.jp/gamegui
 ## Pythonで開発した理由
 
 1. 研究や大学の授業で使い慣れているので作業がしやすい
-2. 今後，ShadowverseをプレイするAIを作成しようとしたときにPythonだと都合が良いと思ったから
+2. 今後，ShadowverseをプレイするAIを作成しようとしたときにPythonだと都合が良いと考えたから
    - カードゲームをプレイするAIの作成はこちら
 
       [強化学習でカードゲームをプレイするAIを作る](https://github.com/Ate25436/reinforce_learning.git)
