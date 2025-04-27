@@ -22,10 +22,10 @@ def make_deck():
     Fighter = Card(ClassName.Neutral, Rarity.Bronze, cost=2, name="Fighter", CardType=CardType.Follower, power=2, health=2, ability={})
     AppendCard(deck1, Fighter, 3)
 
-    QuickBlader = Card(ClassName.Royal, Rarity.Bronze, cost=1, name="QuickBlader", CardType=CardType.Follower, power=1, health=1, ability={"sprint":True})
+    QuickBlader = Card(ClassName.Royal, Rarity.Bronze, cost=1, name="Quick_Blader", CardType=CardType.Follower, power=1, health=1, ability={"sprint":True})
     AppendCard(deck1, QuickBlader, 3)
 
-    WiseMerman = Card(ClassName.Neutral, Rarity.Bronze, cost=1, name="WiseMerman", CardType=CardType.Follower, power=1, health=1, ability={"select_in_fanfare":[Card.if_exist_match_card(Card.if_AnyAnd(Card.if_CardType(CardType.Follower), Card.if_ClassName(ClassName.Neutral))), None]})
+    WiseMerman = Card(ClassName.Neutral, Rarity.Bronze, cost=1, name="Wise_Merman", CardType=CardType.Follower, power=1, health=1, ability={"select_in_fanfare":[Card.if_exist_match_card(Card.if_AnyAnd(Card.if_CardType(CardType.Follower), Card.if_ClassName(ClassName.Neutral))), None]})
     WiseMerman.ability["fanfare"] = WiseMerman.BuffSelectedFollowerNum((1, 0))
     WiseMerman.ability["select_in_fanfare"][1] = WiseMerman.SelectCard(Card.if_AnyAnd(Card.if_CardType(CardType.Follower), Card.if_ClassName(ClassName.Neutral)))
     AppendCard(deck1, WiseMerman, 3)
