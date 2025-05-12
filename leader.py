@@ -235,7 +235,9 @@ class Leader():
         self.Deck.append(InsertCard)
 
     def Print(self):
+        print()
         print(self.Name)
         print(f"LeaderType: {self.LeaderType}, MaxHealth: {self.MaxHealth}, Health: {self.Health}, MaxPP: {self.MaxPP}, PP: {self.PP}, cemetery: {self.cemetery}, advance: {self.advance}, EP: {self.EP}, Turn: {self.Turn}")
         print(*self.Hand)
         print(*self.field)
+        print()
